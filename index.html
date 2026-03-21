@@ -54,7 +54,7 @@
           <ul class="hero-points">
             <li>직접 거래 지원</li>
             <li>예약/반납 한 번에</li>
-            <li>동네 기반 만남</li>
+            <li>동네 기반 대여 서비스</li>
           </ul>
         </div>
 
@@ -64,27 +64,40 @@
             <p class="visual-sub">가까운 거리부터 빠르게 찾아보세요.</p>
 
             <div class="visual-graph">
+              <svg class="graph-line" viewBox="0 0 353 186" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path
+                  d="M58 122
+                    C70 108, 77 84, 84.5 73.5
+                    C92 64, 108 62, 126 72
+                    C143 82, 160 66, 171.5 53.5
+                    C182 43, 198 50, 220 76
+                    C240 100, 270 97, 287.5 84.5
+                    C295 79, 302 78, 308 82"
+                  stroke="#8A9AB6"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  fill="none"
+                />
+              </svg>
+
               <div class="dot dot1"></div>
               <div class="dot dot2"></div>
               <div class="dot dot3"></div>
-              <svg viewBox="0 0 260 96" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <path d="M14 70C39 52 71 49 96 55C117 60 131 63 151 53C170 44 188 34 212 39C227 42 236 39 247 34"
-                      stroke="#8A9AB6" stroke-width="2.5" stroke-linecap="round"/>
-              </svg>
             </div>
 
             <div class="visual-stats">
               <div class="mini-stat">
-                <span>최근 24시간</span>
-                <strong>신규 38개</strong>
+                <span class="stat-label"></span>
+                <strong class="stat-value"></strong>
               </div>
               <div class="mini-stat">
-                <span>내 동네</span>
-                <strong>평균 왕복 6분</strong>
+                <span class="stat-label"></span>
+                <strong class="stat-value"></strong>
               </div>
               <div class="mini-stat">
-                <span>평균 거래</span>
-                <strong>1.8km</strong>
+                <span class="stat-label"></span>
+                <strong class="stat-value"></strong>
               </div>
             </div>
           </div>
@@ -96,12 +109,18 @@
     <section class="search-section">
       <div class="inner">
         <div class="search-bar-wrap">
-          <div class="field-group">
+          <div class="field-group location-field">
             <label>지역</label>
-            <button class="select-box" type="button">
-              <span>김포 장기동</span>
+
+            <button class="select-box" type="button" id="locationBtn">
+              <span id="locationText">지역 선택</span>
               <span class="arrow"></span>
             </button>
+
+            <div class="location-dropdown" id="locationDropdown">
+              <div class="location-path" id="locationPath">시/도를 선택해주세요</div>
+              <ul id="locationList"></ul>
+            </div>
           </div>
 
           <div class="field-group search-group">
@@ -140,7 +159,7 @@
           </h2>
           <p class="section-desc">
             거래 횟수, 인증률, 평점, 신고 이력까지 한눈에. 빌려잇의 신뢰 지표가
-            낮선 이웃을 믿을 수 있는 이유로 연결돼요.
+            낮선 이웃을 <br> 믿을 수 있는 이유로 연결돼요.
           </p>
 
           <div class="trust-list">
@@ -183,8 +202,8 @@
             <div class="profile-top">
               <div class="avatar">김</div>
               <div class="profile-info">
-                <strong>김포장기동 프로렌탈</strong>
-                <span>빌려준 횟수 많은 · 인증률 1위</span>
+                <strong>김민준님의 프로필</strong>
+                <span>마포구 합정동 · 인증된 이웃</span>
               </div>
             </div>
 
@@ -227,7 +246,7 @@
             <h2>오늘의 추천상품</h2>
             <p>최근 게시글 기준으로, 내 동네에서 인기 있는 물건을 보여드려요</p>
           </div>
-          <a href="#" class="section-link">최근 게시글 전체보기 &gt;</a>
+          <a href="#" class="section-link">최근 게시글 전체보기 <span>→</span></a>
         </div>
 
         <div class="product-grid">
@@ -361,7 +380,7 @@
           지금 바로 이웃과<br />
           <span>안전하게 나눠보세요</span>
         </h2>
-        <p>가입 무료 · AI 거래 분석 무료 · 첫 거래 수수료 0%</p>
+        <p>가입 무료 · AI 거래 분석 무료 · 동네 기반 대여 서비스</p>
 
         <div class="cta-actions">
           <a href="#" class="cta-btn cta-btn-white">무료로 시작하기</a>
@@ -383,5 +402,7 @@
       </div>
     </footer>
   </div>
+  
+  <script src="js/select.js"></script>
 </body>
 </html>

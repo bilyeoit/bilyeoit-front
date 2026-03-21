@@ -116,7 +116,7 @@ button,input{
 /* hero */
 .hero{
   background:#EAF0F9;
-  padding:78px 0 82px;
+  padding:158px 0 72px;
   position:relative;
 }
 
@@ -130,17 +130,17 @@ button,input{
 }
 
 .hero::before{
-  width:188px;
-  height:188px;
-  right:94px;
-  top:27px;
+  width:288px;
+  height:288px;
+  right:424px;
+  top:47px;
 }
 
 .hero::after{
-  width:130px;
-  height:130px;
-  right:57px;
-  top:115px;
+  width:230px;
+  height:230px;
+  right:367px;
+  top:185px;
   background:rgba(212,220,233,0.65);
 }
 
@@ -157,14 +157,14 @@ button,input{
 }
 
 .hero-kicker{
-  font-size:11px;
+  font-size:13px;
   color:#314F7C;
   font-weight:700;
   margin-bottom:18px;
 }
 
 .hero-copy h1{
-  font-size:58px;
+  font-size:44px;
   line-height:1.07;
   letter-spacing:-0.04em;
   color:#1D2433;
@@ -173,7 +173,7 @@ button,input{
 }
 
 .hero-desc{
-  font-size:14px;
+  font-size:16px;
   line-height:1.75;
   color:#41506A;
   font-weight:600;
@@ -193,7 +193,7 @@ button,input{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  font-size:13px;
+  font-size:14px;
   font-weight:800;
 }
 
@@ -219,7 +219,7 @@ button,input{
 .hero-points li{
   position:relative;
   padding-left:16px;
-  font-size:12px;
+  font-size:13px;
   color:#31425F;
   font-weight:700;
 }
@@ -250,14 +250,14 @@ button,input{
 }
 
 .visual-title{
-  font-size:13px;
+  font-size:14px;
   color:#2B4170;
   font-weight:800;
   margin-bottom:6px;
 }
 
 .visual-sub{
-  font-size:11px;
+  font-size:13px;
   color:#7D8CA3;
   font-weight:600;
   margin-bottom:14px;
@@ -272,13 +272,12 @@ button,input{
   margin-bottom:14px;
 }
 
-.visual-graph svg{
+.graph-line{
   position:absolute;
-  left:18px;
-  right:18px;
-  top:46px;
-  width:calc(100% - 36px);
-  height:96px;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:0;
 }
 
 .dot{
@@ -288,6 +287,7 @@ button,input{
   border-radius:50%;
   background:#203E70;
   box-shadow:0 0 0 7px rgba(255,255,255,0.72);
+  z-index:1;
 }
 
 .dot1{ left:74px; top:63px; }
@@ -309,7 +309,7 @@ button,input{
 
 .mini-stat span{
   display:block;
-  font-size:9px;
+  font-size:12px;
   line-height:1.2;
   color:#7787A2;
   font-weight:700;
@@ -340,7 +340,7 @@ button,input{
 
 .field-group label{
   display:block;
-  font-size:11px;
+  font-size:12px;
   color:#485771;
   font-weight:800;
   margin-bottom:8px;
@@ -361,7 +361,7 @@ button,input{
   align-items:center;
   justify-content:space-between;
   color:#283B63;
-  font-size:12px;
+  font-size:14px;
   font-weight:700;
 }
 
@@ -386,13 +386,72 @@ button,input{
   border:none;
   outline:none;
   background:transparent;
-  font-size:12px;
+  font-size:14px;
   color:#2A3750;
 }
 
 .search-box input::placeholder{
   color:#A2AEC1;
   font-weight:600;
+}
+
+.field-group{
+  position:relative;
+}
+
+.location-dropdown{
+  position:absolute;
+  top:100%;
+  left:0;
+  width:100%;
+  margin-top:6px;
+  background:#fff;
+  border:1px solid #D8E2F0;
+  border-radius:14px;
+  box-shadow:0 10px 24px rgba(0,0,0,0.06);
+  display:none;
+  z-index:30;
+  overflow:hidden;
+}
+
+.location-dropdown.active{
+  display:block;
+}
+
+.location-path{
+  padding:12px 16px;
+  font-size:12px;
+  font-weight:800;
+  color:#6E7D95;
+  background:#F7FAFE;
+  border-bottom:1px solid #E5ECF5;
+}
+
+.location-dropdown ul{
+  list-style:none;
+  margin:0;
+  padding:6px 0;
+  max-height:240px;
+  overflow-y:auto;
+}
+
+.location-dropdown li{
+  padding:12px 16px;
+  font-size:13px;
+  font-weight:700;
+  color:#2A3750;
+  cursor:pointer;
+  transition:background 0.15s ease;
+}
+
+.location-dropdown li:hover{
+  background:#F2F6FC;
+}
+
+.location-dropdown li.is-back{
+  color:#4F6486;
+  font-weight:800;
+  border-bottom:1px solid #EEF3F8;
 }
 
 .search-icon{
@@ -422,7 +481,7 @@ button,input{
   border-radius:14px;
   background:#1F4278;
   color:#fff;
-  font-size:12px;
+  font-size:14px;
   font-weight:800;
   cursor:pointer;
 }
@@ -439,15 +498,15 @@ button,input{
 
 .cat-pill{
   min-width:124px;
-  height:48px;
+  height:60px;
   border:1px solid #D9E2EF;
   background:#ffffff;
   border-radius:12px;
   position:relative;
-  padding:0 16px 0 52px;
+  padding:0 20px 0 60px;
   text-align:left;
   color:#293756;
-  font-size:12px;
+  font-size:16px;
   font-weight:800;
   box-shadow:0 2px 0 rgba(233,239,247,0.65);
   cursor:pointer;
@@ -487,7 +546,7 @@ button,input{
 .section-kicker{
   display:inline-block;
   position:relative;
-  font-size:10px;
+  font-size:11px;
   letter-spacing:0.18em;
   font-weight:900;
   color:#F18654;
@@ -508,7 +567,7 @@ button,input{
 }
 
 .trust-copy h2{
-  font-size:58px;
+  font-size:48px;
   line-height:1.03;
   letter-spacing:-0.04em;
   color:#1C2332;
@@ -517,7 +576,7 @@ button,input{
 }
 
 .section-desc{
-  font-size:13px;
+  font-size:15px;
   line-height:1.8;
   color:#586982;
   font-weight:600;
@@ -542,8 +601,8 @@ button,input{
 }
 
 .trust-icon{
-  width:30px;
-  height:30px;
+  width:40px;
+  height:40px;
   border-radius:10px;
   background:#E8F1FD;
   position:relative;
@@ -558,7 +617,7 @@ button,input{
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:14px;
+  font-size:16px;
 }
 
 .icon-pin::before{
@@ -568,7 +627,7 @@ button,input{
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:14px;
+  font-size:16px;
 }
 
 .icon-star::before{
@@ -578,7 +637,7 @@ button,input{
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:14px;
+  font-size:16px;
 }
 
 .icon-bag::before{
@@ -588,19 +647,19 @@ button,input{
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:14px;
+  font-size:16px;
 }
 
 .trust-item strong{
   display:block;
-  font-size:13px;
+  font-size:14px;
   color:#25385E;
   font-weight:900;
   margin-bottom:5px;
 }
 
 .trust-item p{
-  font-size:11px;
+  font-size:12px;
   line-height:1.55;
   color:#7A8AA1;
   font-weight:600;
@@ -627,21 +686,21 @@ button,input{
 }
 
 .avatar{
-  width:29px;
-  height:29px;
+  width:40px;
+  height:40px;
   border-radius:50%;
   background:#EEDCCF;
   color:#4A3B32;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:12px;
+  font-size:14px;
   font-weight:900;
 }
 
 .profile-info strong{
   display:block;
-  font-size:12px;
+  font-size:14px;
   color:#293B62;
   font-weight:900;
   margin-bottom:4px;
@@ -649,7 +708,7 @@ button,input{
 
 .profile-info span{
   display:block;
-  font-size:10px;
+  font-size:12px;
   color:#7E8EA8;
   font-weight:700;
 }
@@ -665,7 +724,7 @@ button,input{
   background:#EAF0F8;
   border:1px solid #D6E0EE;
   border-radius:12px;
-  min-height:64px;
+  min-height:70px;
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -673,7 +732,7 @@ button,input{
 }
 
 .profile-stat strong{
-  font-size:28px;
+  font-size:22px;
   line-height:1;
   color:#1F2C47;
   font-weight:900;
@@ -681,7 +740,7 @@ button,input{
 }
 
 .profile-stat span{
-  font-size:10px;
+  font-size:12px;
   color:#7A8AA4;
   font-weight:800;
 }
@@ -700,14 +759,14 @@ button,input{
 }
 
 .stars{
-  font-size:11px;
+  font-size:12px;
   letter-spacing:1px;
   color:#F4B248;
   margin-bottom:6px;
 }
 
 .review-box p{
-  font-size:10px;
+  font-size:12px;
   line-height:1.65;
   color:#65748C;
   font-weight:700;
@@ -720,11 +779,11 @@ button,input{
   justify-content:center;
   min-width:66px;
   height:18px;
-  padding:0 8px;
+  padding:12px;
   border-radius:999px;
   background:#1B1E25;
   color:#ffffff;
-  font-size:9px;
+  font-size:10px;
   font-weight:800;
 }
 
@@ -743,7 +802,7 @@ button,input{
 }
 
 .section-head h2{
-  font-size:31px;
+  font-size:26px;
   line-height:1.15;
   color:#1F293C;
   font-weight:900;
@@ -751,16 +810,25 @@ button,input{
 }
 
 .section-head p{
-  font-size:12px;
+  font-size:14px;
   color:#677890;
   font-weight:700;
 }
 
 .section-link{
-  font-size:11px;
+  font-size:13px;
   color:#35486D;
   font-weight:800;
   padding-top:7px;
+}
+
+.section-link span{
+  display:inline-block;
+  transition:transform 0.25s ease;
+}
+
+.section-link:hover span{
+  transform:translateX(10px);
 }
 
 .product-grid{
@@ -799,37 +867,38 @@ button,input{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  font-size:9px;
+  font-size:11px;
   color:#576981;
   font-weight:900;
 }
 
 .product-card h3{
-  font-size:14px;
+  font-size:16px;
   line-height:1.4;
   color:#202C43;
   font-weight:900;
   margin-bottom:7px;
+  margin-top: 10px;
 }
 
 .meta{
-  font-size:10px;
+  font-size:13px;
   line-height:1.4;
   color:#7B8CA2;
   font-weight:700;
-  margin-bottom:12px;
+  margin-bottom:10px;
 }
 
 .price{
-  font-size:19px;
+  font-size:16px;
   line-height:1;
   color:#1E3E74;
   font-weight:900;
-  margin-bottom:18px;
+  margin-bottom:15px;
 }
 
 .price span{
-  font-size:12px;
+  font-size:13px;
   color:#6A7C98;
   font-weight:700;
 }
@@ -839,17 +908,19 @@ button,input{
   align-items:flex-end;
   justify-content:space-between;
   gap:10px;
+  border-top: 1px solid #ddd;
+  padding-top: 10px;
 }
 
 .bottom-line p{
-  font-size:10px;
+  font-size:13px;
   line-height:1.5;
   color:#7A899F;
   font-weight:700;
 }
 
 .bottom-line span{
-  font-size:10px;
+  font-size:11px;
   color:#97A5B8;
   font-weight:700;
   white-space:nowrap;
@@ -866,7 +937,7 @@ button,input{
 }
 
 .cta-inner h2{
-  font-size:62px;
+  font-size:60px;
   line-height:1.05;
   letter-spacing:-0.045em;
   color:#ffffff;
@@ -879,7 +950,7 @@ button,input{
 }
 
 .cta-inner p{
-  font-size:13px;
+  font-size:15px;
   color:#AFC0D8;
   font-weight:700;
   margin-bottom:34px;
@@ -898,7 +969,7 @@ button,input{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  font-size:12px;
+  font-size:13px;
   font-weight:900;
 }
 
@@ -932,7 +1003,7 @@ button,input{
   align-items:center;
   gap:8px;
   color:#ffffff;
-  font-size:12px;
+  font-size:18px;
   font-weight:900;
 }
 
@@ -942,20 +1013,20 @@ button,input{
   justify-content:center;
   width:14px;
   height:14px;
-  font-size:12px;
+  font-size:18px;
   color:#FF8C59;
 }
 
 .footer-center{
   text-align:center;
-  font-size:10px;
+  font-size:13px;
   color:#90A3BF;
   font-weight:700;
 }
 
 .footer-copy{
   text-align:right;
-  font-size:10px;
+  font-size:13px;
   color:#90A3BF;
   font-weight:700;
 }
