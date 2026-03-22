@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/loginmodal.css">
+    <title>login</title>
+</head>
+<body>
+    <!-- 트리거 버튼 예시 -->
+
+<!-- 모달 -->
+<div class="auth-modal" id="authModal" aria-hidden="true">
+  <div class="auth-modal__backdrop"></div>
+
+  <div class="auth-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+    <button type="button" class="auth-modal__close" id="authModalClose" aria-label="닫기">
+      <span></span>
+      <span></span>
+    </button>
+
+    <div class="auth-modal__brand">
+      <span class="auth-modal__brand-dot"></span>
+      <strong>빌려잇</strong>
+    </div>
+
+    <!-- 로그인 화면 -->
+    <section class="auth-panel is-active" id="loginPanel">
+      <h2 class="auth-modal__title" id="authModalTitle">로그인</h2>
+      <p class="auth-modal__desc">동네 대여를 더 안전하고 간편하게</p>
+
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab is-active" data-auth-tab="login">로그인</button>
+        <button type="button" class="auth-tab" data-auth-tab="signup">회원가입</button>
+      </div>
+
+      <div class="auth-form-row">
+        <label>이메일</label>
+        <div class="auth-input auth-input--icon">
+          <span class="auth-input__icon auth-input__icon--mail"></span>
+          <input type="email" placeholder="example@bilreit.com">
+        </div>
+      </div>
+
+      <div class="auth-form-row">
+        <label>비밀번호</label>
+        <div class="auth-input auth-input--icon auth-input--action">
+          <span class="auth-input__icon auth-input__icon--lock"></span>
+          <input type="password" placeholder="••••••••">
+          <button type="button" class="auth-inline-btn toggle-password-btn">표시</button>
+        </div>
+      </div>
+
+      <div class="auth-inline-row">
+        <label class="check-wrap">
+          <input type="checkbox">
+          <span class="check-box"></span>
+          <span class="check-text">로그인 상태 유지</span>
+        </label>
+
+        <a href="#" class="auth-link auth-link--blue">비밀번호 찾기</a>
+      </div>
+
+      <button type="button" class="auth-submit-btn">로그인</button>
+
+      <div class="auth-divider">
+        <span>또는</span>
+      </div>
+
+      <button type="button" class="social-btn">
+        <span class="social-btn__icon">C</span>
+        <span>Google로 계속하기</span>
+      </button>
+
+      <div class="auth-bottom-row">
+        <p>계정이 없나요? <a href="#" class="auth-link auth-switch-link" data-auth-switch="signup">회원가입</a></p>
+        <p class="auth-agree-text">로그인하면 이용약관·개인정보처리방침에 동의하게 됩니다</p>
+      </div>
+    </section>
+
+    <!-- 회원가입 화면 -->
+    <section class="auth-panel" id="signupPanel">
+      <h2 class="auth-modal__title">회원가입</h2>
+      <p class="auth-modal__desc">3분이면 끝! 안전한 동네 대여를 시작해요</p>
+
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab" data-auth-tab="login">로그인</button>
+        <button type="button" class="auth-tab is-active" data-auth-tab="signup">회원가입</button>
+      </div>
+
+      <div class="auth-form-row">
+        <label>닉네임</label>
+        <div class="auth-input">
+          <input type="text" placeholder="예: kim_young">
+        </div>
+      </div>
+
+      <div class="auth-form-row">
+        <label>이메일</label>
+        <div class="auth-input">
+          <input type="email" placeholder="example@bilreit.com">
+        </div>
+      </div>
+
+      <div class="auth-form-row">
+        <label>비밀번호</label>
+        <div class="auth-input auth-input--action">
+          <input type="password" placeholder="영문/숫자/특수문자 포함 8자 이상">
+          <button type="button" class="auth-inline-btn toggle-password-btn">표시</button>
+          <span class="auth-strength"></span>
+        </div>
+      </div>
+
+      <div class="auth-form-row">
+        <label>비밀번호 확인</label>
+        <div class="auth-input">
+          <input type="password" placeholder="••••••••">
+          <button type="button" class="auth-inline-btn toggle-password-btn">표시</button>
+        </div>
+      </div>
+
+      <div class="auth-check-list">
+        <div class="auth-check-row">
+          <label class="check-wrap">
+            <input type="checkbox" checked>
+            <span class="check-box"></span>
+            <span class="check-text">이용약관(필수) · 개인정보처리방침(필수) 동의</span>
+          </label>
+          <a href="#" class="auth-link auth-link--blue">보기</a>
+        </div>
+
+        <div class="auth-check-row">
+          <label class="check-wrap">
+            <input type="checkbox">
+            <span class="check-box"></span>
+            <span class="check-text">마케팅 수신 동의(선택)</span>
+          </label>
+        </div>
+      </div>
+
+      <button type="button" class="auth-submit-btn">계정 만들기</button>
+
+      <div class="auth-bottom-row">
+        <p>이미 계정이 있나요? <a href="#" class="auth-link auth-switch-link" data-auth-switch="login">로그인</a></p>
+        <p class="auth-agree-text">가입하면 빌려잇 이용약관에 동의하게 됩니다</p>
+      </div>
+    </section>
+  </div>
+</div>
+<script src="js/loginmodal.js"></script>
+</body>
+</html>

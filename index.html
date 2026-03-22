@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>빌려잇</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/style.css"/>
 </head>
 <body>
   <div class="page">
@@ -28,7 +28,7 @@
           <a href="#">내채팅</a>
         </nav>
 
-        <a href="#" class="login-btn">로그인</a>
+        <button type="button" id="openLoginModal" class="demo-open-btn login-btn">로그인</button>
       </div>
     </header>
 
@@ -402,7 +402,29 @@
       </div>
     </footer>
   </div>
-  
-  <script src="js/select.js"></script>
+ <div id="modal-root"></div>
+
+<script src="js/select.js"></script>
+<script src="js/loginmodal.js"></script>
+
+<script>
+  fetch("./loginmodal.html")
+    .then((res) => {
+      if (!res.ok) throw new Error("loginmodal.html 불러오기 실패");
+      return res.text();
+    })
+    .then((html) => {
+      document.getElementById("modal-root").innerHTML = html;
+
+      if (typeof initLoginModal === "function") {
+        initLoginModal();
+      } else {
+        console.error("initLoginModal 함수가 없습니다.");
+      }
+    })
+    .catch((err) => {
+      console.error("모달 로드 실패:", err);
+    });
+</script>
 </body>
 </html>
