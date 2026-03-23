@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import LoginModal from "./LoginModal";
+import { getLocations, getProducts } from "../services/home";
 
 const STATS = [
   { label: "최근 24시간", value: "신규 38개" },
@@ -44,90 +46,18 @@ const TRUST_ITEMS = [
   },
 ];
 
-const PRODUCTS = [
-  {
-    title: "닌텐도 스위치 OLED",
-    meta: "@game_lover01 · 김포 장기동",
-    price: "₩8,000",
-    note: "“저녁 9시 7시 체크 가능해요”",
-    time: "10분 전",
-    badges: ["대여가능", "즉시"],
-  },
-  {
-    title: "캠핑용 빔프로젝터",
-    meta: "@camp_master · 김포 구래동",
-    price: "₩12,000",
-    note: "“주말 2박이면 할인 가능해요”",
-    time: "28분 전",
-    badges: ["대여가능", "인기"],
-  },
-  {
-    title: "DJI 짐벌 (오즈모 모바일)",
-    meta: "@shoot_day · 김포 운양동",
-    price: "₩6,000",
-    note: "“촬영용으로 딱 좋아요”",
-    time: "1시간 전",
-    badges: ["대여가능", "신뢰판매"],
-  },
-  {
-    title: "전동 드릴 + 비트 세트",
-    meta: "@tool_rent · 김포 풍무동",
-    price: "₩5,000",
-    note: "“오후 2시 픽업 예약 진행 중”",
-    time: "2시간 전",
-    badges: ["긴급함", "즉시"],
-  },
-  {
-    title: "닌텐도 스위치 OLED",
-    meta: "@game_lover01 · 김포 장기동",
-    price: "₩8,000",
-    note: "“저녁 9시 7시 체크 가능해요”",
-    time: "10분 전",
-    badges: ["대여가능", "즉시"],
-  },
-  {
-    title: "캠핑용 빔프로젝터",
-    meta: "@camp_master · 김포 구래동",
-    price: "₩12,000",
-    note: "“주말 2박이면 할인 가능해요”",
-    time: "28분 전",
-    badges: ["대여가능", "인기"],
-  },
-  {
-    title: "DJI 짐벌 (오즈모 모바일)",
-    meta: "@shoot_day · 김포 운양동",
-    price: "₩6,000",
-    note: "“촬영용으로 딱 좋아요”",
-    time: "1시간 전",
-    badges: ["대여가능", "신뢰판매"],
-  },
-  {
-    title: "전동 드릴 + 비트 세트",
-    meta: "@tool_rent · 김포 풍무동",
-    price: "₩5,000",
-    note: "“오후 2시 픽업 예약 진행 중”",
-    time: "2시간 전",
-    badges: ["긴급함", "즉시"],
-  },
-];
-
-const LOCATION_DATA = {
-  경기도: {
-    김포시: ["장기동", "운양동", "풍무동", "사우동"],
-    고양시: ["백석동", "주엽동", "탄현동", "화정동"],
-  },
-  서울특별시: {
-    강남구: ["역삼동", "논현동", "청담동", "삼성동"],
-    마포구: ["합정동", "상수동", "서교동", "연남동"],
-  },
-  인천광역시: {
-    연수구: ["송도동", "연수동", "옥련동"],
-    부평구: ["부평동", "산곡동", "청천동"],
-  },
-};
-
 export default function HomePage() {
+  const [mounted, setMounted] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const [products, setProducts] = useState([]);
+  const [locationData, setLocationData] = useState({});
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [locationsLoading, setLocationsLoading] = useState(true);
+  const [productsError, setProductsError] = useState("");
+  const [locationsError, setLocationsError] = useState("");
+
   const [isLocationOpen, setIsLocationOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [selectedLocation, setSelectedLocation] = useState({
@@ -135,6 +65,81 @@ export default function HomePage() {
     district: "",
     dong: "",
   });
+
+  useEffect(() => {
+    setMounted(true);
+
+    const savedLoginState = localStorage.getItem("isLoggedIn");
+    if (savedLoginState === "true") {
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setProductsLoading(true);
+      setProductsError("");
+
+      try {
+        const data = await getProducts();
+
+        if (Array.isArray(data)) {
+          setProducts(data);
+        } else if (Array.isArray(data?.items)) {
+          setProducts(data.items);
+        } else {
+          setProducts([]);
+        }
+      } catch (error) {
+        setProductsError(error.message || "상품 목록을 불러오지 못했습니다.");
+        setProducts([]);
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      setLocationsLoading(true);
+      setLocationsError("");
+
+      try {
+        const data = await getLocations();
+
+        if (data && typeof data === "object" && !Array.isArray(data)) {
+          setLocationData(data);
+        } else if (data?.locations && typeof data.locations === "object") {
+          setLocationData(data.locations);
+        } else {
+          setLocationData({});
+        }
+      } catch (error) {
+        setLocationsError(error.message || "지역 정보를 불러오지 못했습니다.");
+        setLocationData({});
+      } finally {
+        setLocationsLoading(false);
+      }
+    };
+
+    fetchLocations();
+  }, []);
+
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+    localStorage.setItem("isLoggedIn", "true");
+    setIsLoginModalOpen(false);
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    localStorage.removeItem("isLoggedIn");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
+  };
 
   const locationPathText = useMemo(() => {
     if (step === 0) return "시/도를 선택해주세요";
@@ -150,28 +155,24 @@ export default function HomePage() {
   }, [selectedLocation]);
 
   const currentLocationList = useMemo(() => {
-    if (step === 0) {
-      return Object.keys(LOCATION_DATA);
+    if (step === 0) return Object.keys(locationData || {});
+    if (step === 1 && selectedLocation.city && locationData[selectedLocation.city]) {
+      return Object.keys(locationData[selectedLocation.city]);
     }
-
-    if (step === 1 && selectedLocation.city) {
-      return Object.keys(LOCATION_DATA[selectedLocation.city]);
+    if (
+      step === 2 &&
+      selectedLocation.city &&
+      selectedLocation.district &&
+      locationData[selectedLocation.city]?.[selectedLocation.district]
+    ) {
+      return locationData[selectedLocation.city][selectedLocation.district];
     }
-
-    if (step === 2 && selectedLocation.city && selectedLocation.district) {
-      return LOCATION_DATA[selectedLocation.city][selectedLocation.district];
-    }
-
     return [];
-  }, [step, selectedLocation]);
+  }, [step, selectedLocation, locationData]);
 
   const handleLocationSelect = (item) => {
     if (step === 0) {
-      setSelectedLocation({
-        city: item,
-        district: "",
-        dong: "",
-      });
+      setSelectedLocation({ city: item, district: "", dong: "" });
       setStep(1);
       return;
     }
@@ -199,10 +200,15 @@ export default function HomePage() {
       setStep(1);
       return;
     }
-
     if (step === 1) {
       setStep(0);
     }
+  };
+
+  const formatPrice = (price) => {
+    if (typeof price === "number") return `₩${price.toLocaleString()}`;
+    if (typeof price === "string") return price;
+    return "₩0";
   };
 
   return (
@@ -226,16 +232,42 @@ export default function HomePage() {
               <a href="#">내채팅</a>
             </nav>
 
-            <button
-              type="button"
-              className="demo-open-btn login-btn"
-              onClick={() => setIsLoginModalOpen(true)}
-            >
-              로그인
-            </button>
+            <div className="header-actions">
+              {!mounted ? (
+                <button
+                  type="button"
+                  className="demo-open-btn login-btn"
+                  disabled
+                >
+                  로그인
+                </button>
+              ) : isLoggedIn ? (
+                <>
+                  <Link href="/mypage" className="demo-open-btn mypage-btn">
+                    마이페이지
+                  </Link>
+                  <button
+                    type="button"
+                    className="demo-open-btn logout-btn"
+                    onClick={handleLogout}
+                  >
+                    로그아웃
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="demo-open-btn login-btn"
+                  onClick={() => setIsLoginModalOpen(true)}
+                >
+                  로그인
+                </button>
+              )}
+            </div>
           </div>
         </header>
 
+        {/* 이하 기존 코드 그대로 */}
         <section className="hero">
           <div className="inner hero-inner">
             <div className="hero-copy">
@@ -324,8 +356,11 @@ export default function HomePage() {
                   className="select-box"
                   type="button"
                   onClick={() => setIsLocationOpen((prev) => !prev)}
+                  disabled={locationsLoading}
                 >
-                  <span>{locationButtonText}</span>
+                  <span>
+                    {locationsLoading ? "지역 불러오는 중..." : locationButtonText}
+                  </span>
                   <span className="arrow"></span>
                 </button>
 
@@ -344,6 +379,12 @@ export default function HomePage() {
                         {item}
                       </li>
                     ))}
+
+                    {!locationsLoading && currentLocationList.length === 0 && (
+                      <li>지역 데이터가 없습니다.</li>
+                    )}
+
+                    {locationsError && <li>{locationsError}</li>}
                   </ul>
                 </div>
               </div>
@@ -352,7 +393,10 @@ export default function HomePage() {
                 <label>검색어</label>
                 <div className="search-box">
                   <span className="search-icon"></span>
-                  <input type="text" placeholder="예: 빔프로젝터, 스위치, 드릴, 텐트..." />
+                  <input
+                    type="text"
+                    placeholder="예: 빔프로젝터, 스위치, 드릴, 텐트..."
+                  />
                 </div>
               </div>
 
@@ -458,30 +502,41 @@ export default function HomePage() {
               </a>
             </div>
 
-            <div className="product-grid">
-              {PRODUCTS.map((item, index) => (
-                <article className="product-card" key={`${item.title}-${index}`}>
-                  <div className="thumb"></div>
+            {productsLoading ? (
+              <div className="product-empty">상품을 불러오는 중입니다...</div>
+            ) : productsError ? (
+              <div className="product-empty">{productsError}</div>
+            ) : products.length === 0 ? (
+              <div className="product-empty">등록된 상품이 없습니다.</div>
+            ) : (
+              <div className="product-grid">
+                {products.map((item, index) => (
+                  <article
+                    className="product-card"
+                    key={item.id ?? `${item.title}-${index}`}
+                  >
+                    <div className="thumb"></div>
 
-                  <div className="product-badges">
-                    {item.badges.map((badge) => (
-                      <span key={badge}>{badge}</span>
-                    ))}
-                  </div>
+                    <div className="product-badges">
+                      {(item.badges || []).map((badge) => (
+                        <span key={badge}>{badge}</span>
+                      ))}
+                    </div>
 
-                  <h3>{item.title}</h3>
-                  <p className="meta">{item.meta}</p>
-                  <p className="price">
-                    {item.price} <span>/ 하루</span>
-                  </p>
+                    <h3>{item.title}</h3>
+                    <p className="meta">{item.meta}</p>
+                    <p className="price">
+                      {formatPrice(item.price)} <span>/ 하루</span>
+                    </p>
 
-                  <div className="bottom-line">
-                    <p>{item.note}</p>
-                    <span>{item.time}</span>
-                  </div>
-                </article>
-              ))}
-            </div>
+                    <div className="bottom-line">
+                      <p>{item.note}</p>
+                      <span>{item.time}</span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
