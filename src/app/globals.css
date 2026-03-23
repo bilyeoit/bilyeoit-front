@@ -1630,3 +1630,33 @@ button,input{
   justify-content:center;
   text-decoration:none;
 }
+
+.sub-page {
+  min-height: calc(100vh - 92px);
+  padding: 80px 0;
+  background: #ffffff;
+}
+
+.sub-page h1 {
+  font-size: 36px;
+  font-weight: 900;
+  color: #1f2a44;
+  margin-bottom: 14px;
+}
+
+.sub-page p {
+  font-size: 16px;
+  color: #6f7d92;
+  font-weight: 700;
+}
+
+.product-card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.cta-btn {
+  border: none;
+  cursor: pointer;
+}

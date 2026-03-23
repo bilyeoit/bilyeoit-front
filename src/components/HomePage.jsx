@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import LoginModal from "./LoginModal";
 import { getLocations, getProducts } from "../services/home";
 
@@ -47,6 +48,8 @@ const TRUST_ITEMS = [
 ];
 
 export default function HomePage() {
+  const router = useRouter();
+
   const [mounted, setMounted] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -141,6 +144,15 @@ export default function HomePage() {
     localStorage.removeItem("user");
   };
 
+  const handleRequireLoginMove = (path) => {
+    if (isLoggedIn) {
+      router.push(path);
+      return;
+    }
+
+    setIsLoginModalOpen(true);
+  };
+
   const locationPathText = useMemo(() => {
     if (step === 0) return "시/도를 선택해주세요";
     if (step === 1) return selectedLocation.city;
@@ -156,9 +168,15 @@ export default function HomePage() {
 
   const currentLocationList = useMemo(() => {
     if (step === 0) return Object.keys(locationData || {});
-    if (step === 1 && selectedLocation.city && locationData[selectedLocation.city]) {
+
+    if (
+      step === 1 &&
+      selectedLocation.city &&
+      locationData[selectedLocation.city]
+    ) {
       return Object.keys(locationData[selectedLocation.city]);
     }
+
     if (
       step === 2 &&
       selectedLocation.city &&
@@ -167,6 +185,7 @@ export default function HomePage() {
     ) {
       return locationData[selectedLocation.city][selectedLocation.district];
     }
+
     return [];
   }, [step, selectedLocation, locationData]);
 
@@ -200,6 +219,7 @@ export default function HomePage() {
       setStep(1);
       return;
     }
+
     if (step === 1) {
       setStep(0);
     }
@@ -225,11 +245,11 @@ export default function HomePage() {
             </div>
 
             <nav className="gnb">
-              <a href="#">홈</a>
-              <a href="#">대여하기</a>
-              <a href="#">커뮤니티</a>
-              <a href="#">고객센터</a>
-              <a href="#">내채팅</a>
+              <Link href="/">홈</Link>
+              <Link href="/product">대여하기</Link>
+              <Link href="/community">커뮤니티</Link>
+              <Link href="/settings">고객센터</Link>
+              <Link href="/chat">내채팅</Link>
             </nav>
 
             <div className="header-actions">
@@ -267,7 +287,6 @@ export default function HomePage() {
           </div>
         </header>
 
-        {/* 이하 기존 코드 그대로 */}
         <section className="hero">
           <div className="inner hero-inner">
             <div className="hero-copy">
@@ -284,12 +303,16 @@ export default function HomePage() {
               </p>
 
               <div className="hero-actions">
-                <a href="#" className="btn btn-primary">
+                <Link href="/product" className="btn btn-primary">
                   대여 물품찾기
-                </a>
-                <a href="#" className="btn btn-white">
+                </Link>
+                <button
+                  type="button"
+                  className="btn btn-white"
+                  onClick={() => handleRequireLoginMove("/product/create")}
+                >
                   빌려주기
-                </a>
+                </button>
               </div>
 
               <ul className="hero-points">
@@ -364,7 +387,11 @@ export default function HomePage() {
                   <span className="arrow"></span>
                 </button>
 
-                <div className={`location-dropdown ${isLocationOpen ? "active" : ""}`}>
+                <div
+                  className={`location-dropdown ${
+                    isLocationOpen ? "active" : ""
+                  }`}
+                >
                   <div className="location-path">{locationPathText}</div>
 
                   <ul>
@@ -497,9 +524,9 @@ export default function HomePage() {
                 <p>최근 게시글 기준으로, 내 동네에서 인기 있는 물건을 보여드려요</p>
               </div>
 
-              <a href="#" className="section-link">
+              <Link href="/product" className="section-link">
                 최근 게시글 전체보기 <span>→</span>
-              </a>
+              </Link>
             </div>
 
             {productsLoading ? (
@@ -511,29 +538,32 @@ export default function HomePage() {
             ) : (
               <div className="product-grid">
                 {products.map((item, index) => (
-                  <article
-                    className="product-card"
+                  <Link
+                    href={`/product/${item.id ?? index}`}
                     key={item.id ?? `${item.title}-${index}`}
+                    className="product-card-link"
                   >
-                    <div className="thumb"></div>
+                    <article className="product-card">
+                      <div className="thumb"></div>
 
-                    <div className="product-badges">
-                      {(item.badges || []).map((badge) => (
-                        <span key={badge}>{badge}</span>
-                      ))}
-                    </div>
+                      <div className="product-badges">
+                        {(item.badges || []).map((badge) => (
+                          <span key={badge}>{badge}</span>
+                        ))}
+                      </div>
 
-                    <h3>{item.title}</h3>
-                    <p className="meta">{item.meta}</p>
-                    <p className="price">
-                      {formatPrice(item.price)} <span>/ 하루</span>
-                    </p>
+                      <h3>{item.title}</h3>
+                      <p className="meta">{item.meta}</p>
+                      <p className="price">
+                        {formatPrice(item.price)} <span>/ 하루</span>
+                      </p>
 
-                    <div className="bottom-line">
-                      <p>{item.note}</p>
-                      <span>{item.time}</span>
-                    </div>
-                  </article>
+                      <div className="bottom-line">
+                        <p>{item.note}</p>
+                        <span>{item.time}</span>
+                      </div>
+                    </article>
+                  </Link>
                 ))}
               </div>
             )}
@@ -550,12 +580,21 @@ export default function HomePage() {
             <p>가입 무료 · AI 거래 분석 무료 · 동네 기반 대여 서비스</p>
 
             <div className="cta-actions">
-              <a href="#" className="cta-btn cta-btn-white">
+              <button
+                type="button"
+                className="cta-btn cta-btn-white"
+                onClick={() => handleRequireLoginMove("/mypage")}
+              >
                 무료로 시작하기
-              </a>
-              <a href="#" className="cta-btn cta-btn-dark">
+              </button>
+
+              <button
+                type="button"
+                className="cta-btn cta-btn-dark"
+                onClick={() => handleRequireLoginMove("/product/create")}
+              >
                 물건 등록하기
-              </a>
+              </button>
             </div>
           </div>
         </section>
