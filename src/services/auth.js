@@ -11,28 +11,38 @@ async function request(url, options = {}) {
 
   let data = null;
 
-  try {
-    data = await response.json();
-  } catch (error) {
-    data = null;
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
   }
 
   if (!response.ok) {
-    throw new Error(data?.message || "요청 처리 중 오류가 발생했습니다.");
+    throw new Error(data?.message || `요청 실패 (${response.status})`);
   }
 
   return data;
 }
 
 export async function loginUser(payload) {
-  return request("/api/auth/login", {
+  return request("/bilyeoit/v1/login", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
 export async function signupUser(payload) {
-  return request("/api/auth/signup", {
+  return request("/bilyeoit/v1/signup", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function refreshToken(payload) {
+  return request("/bilyeoit/v1/auth/refresh", {
     method: "POST",
     body: JSON.stringify(payload),
   });

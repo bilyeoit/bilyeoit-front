@@ -8,21 +8,24 @@ export default function LoginModal({ open, onClose }) {
 
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
-  const [showSignupPasswordConfirm, setShowSignupPasswordConfirm] = useState(false);
+  const [showSignupPasswordConfirm, setShowSignupPasswordConfirm] =
+    useState(false);
 
   const [loginForm, setLoginForm] = useState({
     email: "",
     password: "",
-    keepLogin: false,
+    keepLogin: false, // UI 유지용. 서버에는 보내지 않음
   });
 
   const [signupForm, setSignupForm] = useState({
+    name: "",
     nickname: "",
     email: "",
     password: "",
     passwordConfirm: "",
+    phone: "",
     agreeRequired: true,
-    agreeMarketing: false,
+    agreeMarketing: false, // 서버에는 보내지 않음
   });
 
   const [loginMessage, setLoginMessage] = useState("");
@@ -74,6 +77,36 @@ export default function LoginModal({ open, onClose }) {
     setSignupSuccess(false);
   };
 
+  const resetForms = () => {
+    setLoginForm({
+      email: "",
+      password: "",
+      keepLogin: false,
+    });
+
+    setSignupForm({
+      name: "",
+      nickname: "",
+      email: "",
+      password: "",
+      passwordConfirm: "",
+      phone: "",
+      agreeRequired: true,
+      agreeMarketing: false,
+    });
+
+    setShowLoginPassword(false);
+    setShowSignupPassword(false);
+    setShowSignupPasswordConfirm(false);
+  };
+
+  const handleClose = () => {
+    resetMessages();
+    resetForms();
+    setActiveTab("login");
+    onClose();
+  };
+
   const handleChangeLoginForm = (key, value) => {
     setLoginForm((prev) => ({
       ...prev,
@@ -97,6 +130,7 @@ export default function LoginModal({ open, onClose }) {
     resetMessages();
 
     if (!loginForm.email.trim() || !loginForm.password.trim()) {
+      setLoginSuccess(false);
       setLoginMessage("이메일과 비밀번호를 입력해주세요.");
       return;
     }
@@ -107,7 +141,6 @@ export default function LoginModal({ open, onClose }) {
       const data = await loginUser({
         email: loginForm.email.trim(),
         password: loginForm.password,
-        keepLogin: loginForm.keepLogin,
       });
 
       setLoginSuccess(true);
@@ -121,12 +154,14 @@ export default function LoginModal({ open, onClose }) {
         localStorage.setItem("refreshToken", data.refreshToken);
       }
 
-      if (data?.user) {
-        localStorage.setItem("user", JSON.stringify(data.user));
+      if (loginForm.keepLogin) {
+        localStorage.setItem("keepLogin", "true");
+      } else {
+        localStorage.removeItem("keepLogin");
       }
 
       setTimeout(() => {
-        onClose();
+        handleClose();
         window.location.reload();
       }, 700);
     } catch (error) {
@@ -141,21 +176,25 @@ export default function LoginModal({ open, onClose }) {
     resetMessages();
 
     if (
+      !signupForm.name.trim() ||
       !signupForm.nickname.trim() ||
       !signupForm.email.trim() ||
       !signupForm.password ||
       !signupForm.passwordConfirm
     ) {
+      setSignupSuccess(false);
       setSignupMessage("모든 필수 항목을 입력해주세요.");
       return;
     }
 
     if (signupForm.password !== signupForm.passwordConfirm) {
+      setSignupSuccess(false);
       setSignupMessage("비밀번호가 일치하지 않습니다.");
       return;
     }
 
     if (!signupForm.agreeRequired) {
+      setSignupSuccess(false);
       setSignupMessage("필수 약관 동의가 필요합니다.");
       return;
     }
@@ -163,19 +202,27 @@ export default function LoginModal({ open, onClose }) {
     try {
       setIsSignupLoading(true);
 
-      const data = await signupUser({
-        nickname: signupForm.nickname.trim(),
+      await signupUser({
         email: signupForm.email.trim(),
         password: signupForm.password,
-        marketingAgree: signupForm.agreeMarketing,
+        name: signupForm.name.trim(),
+        nickname: signupForm.nickname.trim(),
+        phone: signupForm.phone.trim() || null,
       });
 
       setSignupSuccess(true);
-      setSignupMessage(data?.message || "회원가입이 완료되었습니다.");
+      setSignupMessage("회원가입이 완료되었습니다.");
 
       setTimeout(() => {
-        handleTabChange("login");
-      }, 700);
+        setActiveTab("login");
+        setSignupMessage("");
+        setSignupSuccess(false);
+        setSignupForm((prev) => ({
+          ...prev,
+          password: "",
+          passwordConfirm: "",
+        }));
+      }, 900);
     } catch (error) {
       setSignupSuccess(false);
       setSignupMessage(error.message || "회원가입 중 오류가 발생했습니다.");
@@ -186,7 +233,7 @@ export default function LoginModal({ open, onClose }) {
 
   return (
     <div className={`auth-modal ${open ? "is-open" : ""}`} aria-hidden={!open}>
-      <div className="auth-modal__backdrop" onClick={onClose}></div>
+      <div className="auth-modal__backdrop" onClick={handleClose}></div>
 
       <div
         className="auth-modal__dialog"
@@ -198,7 +245,7 @@ export default function LoginModal({ open, onClose }) {
           type="button"
           className="auth-modal__close"
           aria-label="닫기"
-          onClick={onClose}
+          onClick={handleClose}
         >
           <span></span>
           <span></span>
@@ -255,7 +302,9 @@ export default function LoginModal({ open, onClose }) {
                 type={showLoginPassword ? "text" : "password"}
                 placeholder="••••••••"
                 value={loginForm.password}
-                onChange={(e) => handleChangeLoginForm("password", e.target.value)}
+                onChange={(e) =>
+                  handleChangeLoginForm("password", e.target.value)
+                }
               />
               <button
                 type="button"
@@ -346,16 +395,31 @@ export default function LoginModal({ open, onClose }) {
               회원가입
             </button>
           </div>
+          <div className="auth-row-2col">
+            <div className="auth-form-row">
+              <label>이름</label>
+              <div className="auth-input">
+                <input
+                  type="text"
+                  placeholder="실명을 입력해주세요"
+                  value={signupForm.name}
+                  onChange={(e) => handleChangeSignupForm("name", e.target.value)}
+                />
+              </div>
+            </div>
 
-          <div className="auth-form-row">
-            <label>닉네임</label>
-            <div className="auth-input">
-              <input
-                type="text"
-                placeholder="예: kim_young"
-                value={signupForm.nickname}
-                onChange={(e) => handleChangeSignupForm("nickname", e.target.value)}
-              />
+            <div className="auth-form-row">
+              <label>닉네임</label>
+              <div className="auth-input">
+                <input
+                  type="text"
+                  placeholder="예: kim_young"
+                  value={signupForm.nickname}
+                  onChange={(e) =>
+                    handleChangeSignupForm("nickname", e.target.value)
+                  }
+                />
+              </div>
             </div>
           </div>
 
@@ -378,7 +442,9 @@ export default function LoginModal({ open, onClose }) {
                 type={showSignupPassword ? "text" : "password"}
                 placeholder="영문/숫자/특수문자 포함 8자 이상"
                 value={signupForm.password}
-                onChange={(e) => handleChangeSignupForm("password", e.target.value)}
+                onChange={(e) =>
+                  handleChangeSignupForm("password", e.target.value)
+                }
               />
               <button
                 type="button"
@@ -405,10 +471,24 @@ export default function LoginModal({ open, onClose }) {
               <button
                 type="button"
                 className="auth-inline-btn"
-                onClick={() => setShowSignupPasswordConfirm((prev) => !prev)}
+                onClick={() =>
+                  setShowSignupPasswordConfirm((prev) => !prev)
+                }
               >
                 {showSignupPasswordConfirm ? "숨김" : "표시"}
               </button>
+            </div>
+          </div>
+
+          <div className="auth-form-row">
+            <label>전화번호 (선택)</label>
+            <div className="auth-input">
+              <input
+                type="text"
+                placeholder="010-0000-0000"
+                value={signupForm.phone}
+                onChange={(e) => handleChangeSignupForm("phone", e.target.value)}
+              />
             </div>
           </div>
 
