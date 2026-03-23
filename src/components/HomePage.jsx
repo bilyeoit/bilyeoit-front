@@ -578,6 +578,7 @@ export default function HomePage() {
       <LoginModal
         open={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
       />
     </>
   );

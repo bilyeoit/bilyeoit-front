@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { loginUser, signupUser } from "@/services/auth";
 
-export default function LoginModal({ open, onClose }) {
+export default function LoginModal({ open, onClose, onLoginSuccess }) {
   const [activeTab, setActiveTab] = useState("login");
 
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -14,7 +14,7 @@ export default function LoginModal({ open, onClose }) {
   const [loginForm, setLoginForm] = useState({
     email: "",
     password: "",
-    keepLogin: false, // UI 유지용. 서버에는 보내지 않음
+    keepLogin: false,
   });
 
   const [signupForm, setSignupForm] = useState({
@@ -25,7 +25,7 @@ export default function LoginModal({ open, onClose }) {
     passwordConfirm: "",
     phone: "",
     agreeRequired: true,
-    agreeMarketing: false, // 서버에는 보내지 않음
+    agreeMarketing: false,
   });
 
   const [loginMessage, setLoginMessage] = useState("");
@@ -160,9 +160,14 @@ export default function LoginModal({ open, onClose }) {
         localStorage.removeItem("keepLogin");
       }
 
+      localStorage.setItem("isLoggedIn", "true");
+
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      }
+
       setTimeout(() => {
         handleClose();
-        window.location.reload();
       }, 700);
     } catch (error) {
       setLoginSuccess(false);
@@ -395,6 +400,7 @@ export default function LoginModal({ open, onClose }) {
               회원가입
             </button>
           </div>
+
           <div className="auth-row-2col">
             <div className="auth-form-row">
               <label>이름</label>
