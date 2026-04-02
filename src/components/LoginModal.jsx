@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { loginUser, signupUser } from "@/services/auth";
+import { loginUser, signupUser } from "../services/auth";
 
 export default function LoginModal({ open, onClose, onLoginSuccess }) {
   const [activeTab, setActiveTab] = useState("login");
@@ -334,9 +334,9 @@ export default function LoginModal({ open, onClose, onLoginSuccess }) {
               <span className="check-text">로그인 상태 유지</span>
             </label>
 
-            <a href="#" className="auth-link auth-link--blue">
+            <button type="button" className="auth-link auth-link--blue">
               비밀번호 찾기
-            </a>
+            </button>
           </div>
 
           <p className={`auth-message ${loginSuccess ? "is-success" : ""}`}>
@@ -513,9 +513,9 @@ export default function LoginModal({ open, onClose, onLoginSuccess }) {
                   이용약관(필수) · 개인정보처리방침(필수) 동의
                 </span>
               </label>
-              <a href="#" className="auth-link auth-link--blue">
+              <button type="button" className="auth-link auth-link--blue">
                 보기
-              </a>
+              </button>
             </div>
 
             <div className="auth-check-row">

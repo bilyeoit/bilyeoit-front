@@ -226,67 +226,20 @@ export default function HomePage() {
   };
 
   const formatPrice = (price) => {
-    if (typeof price === "number") return `₩${price.toLocaleString()}`;
-    if (typeof price === "string") return price;
+    if (typeof price === "number") {
+      return "₩" + price.toLocaleString();
+    }
+
+    if (typeof price === "string") {
+      return price;
+    }
+
     return "₩0";
   };
 
   return (
     <>
       <div className="page">
-        <header className="header">
-          <div className="inner header-inner">
-            <div className="brand">
-              <span className="brand-mark"></span>
-              <div className="brand-texts">
-                <strong className="brand-name">빌려잇</strong>
-                <span className="brand-sub">우리 주변 물건 대여</span>
-              </div>
-            </div>
-
-            <nav className="gnb">
-              <Link href="/">홈</Link>
-              <Link href="/product">대여하기</Link>
-              <Link href="/community">커뮤니티</Link>
-              <Link href="/settings">고객센터</Link>
-              <Link href="/chat">내채팅</Link>
-            </nav>
-
-            <div className="header-actions">
-              {!mounted ? (
-                <button
-                  type="button"
-                  className="demo-open-btn login-btn"
-                  disabled
-                >
-                  로그인
-                </button>
-              ) : isLoggedIn ? (
-                <>
-                  <Link href="/mypage" className="demo-open-btn mypage-btn">
-                    마이페이지
-                  </Link>
-                  <button
-                    type="button"
-                    className="demo-open-btn logout-btn"
-                    onClick={handleLogout}
-                  >
-                    로그아웃
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  className="demo-open-btn login-btn"
-                  onClick={() => setIsLoginModalOpen(true)}
-                >
-                  로그인
-                </button>
-              )}
-            </div>
-          </div>
-        </header>
-
         <section className="hero">
           <div className="inner hero-inner">
             <div className="hero-copy">
@@ -598,20 +551,6 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-
-        <footer className="footer">
-          <div className="inner footer-inner">
-            <div className="footer-brand">
-              <span className="footer-home">⌂</span>
-              <strong>빌려잇</strong>
-            </div>
-
-            <p className="footer-center">
-              이웃과 함께 살고 돌려쓰는 동네형 물건 쉐어링 서비스입니다
-            </p>
-            <p className="footer-copy">© 2025 빌려잇. All rights reserved.</p>
-          </div>
-        </footer>
       </div>
 
       <LoginModal
