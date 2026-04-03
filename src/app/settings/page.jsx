@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./page.module.css";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
@@ -134,6 +135,7 @@ function formatDateText(value) {
 }
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [activeMenu, setActiveMenu] = useState("profile");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -244,28 +246,38 @@ export default function SettingsPage() {
   }
 
   async function handleSaveProfile() {
-    setSaving(true);
-    setError("");
-    setSuccessMessage("");
+  setSaving(true);
+  setError("");
+  setSuccessMessage("");
 
-    try {
-      const formData = new FormData();
-      if (profileFile) formData.append("profileImg", profileFile);
-      formData.append("intro", profileForm.intro || "");
+  try {
+    const formData = new FormData();
 
-      await request("/bilyeoit/v1/updateuser", {
-        method: "PUT",
-        body: formData,
-      });
-
-      await loadSettingsData();
-      setSuccessMessage("프로필이 저장되었어요.");
-    } catch (err) {
-      setError(err.message || "프로필 저장에 실패했어요.");
-    } finally {
-      setSaving(false);
+    if (profileFile) {
+      formData.append("profileImg", profileFile);
     }
+
+    formData.append("intro", profileForm.intro || "");
+
+    await request("/bilyeoit/v1/updateuser", {
+      method: "PUT",
+      body: formData,
+    });
+
+    setSuccessMessage("프로필이 저장되었어요.");
+
+    // 🔥 중요: 설정 데이터 다시 불러오기
+    await loadSettingsData();
+
+    // 🔥🔥 핵심: 마이페이지로 이동 + 업데이트 트리거
+    router.push("/mypage?updated=1");
+
+  } catch (err) {
+    setError(err.message || "프로필 저장에 실패했어요.");
+  } finally {
+    setSaving(false);
   }
+}
 
   async function handleToggleNotification(key) {
     const nextValue = !notifications[key];
@@ -433,353 +445,603 @@ export default function SettingsPage() {
             ) : (
               <>
                 {activeMenu === "profile" && (
-                  <div className={styles.panel}>
-                    <div className={styles.panelHeader}>
-                      <div>
-                        <h2>내 정보</h2>
-                        <p>프로필 이미지와 소개글을 수정할 수 있어요.</p>
-                      </div>
-                    </div>
+  <div className={styles.profileSettingWrap}>
+    <div className={styles.profileSettingHead}>
+      <div>
+        <h2>내 정보 수정</h2>
+        <p>프로필 이미지, 상점 소개글, 이름/연락처/이메일/주소를 수정할 수 있어요.</p>
+      </div>
+    </div>
 
-                    <div className={styles.profileLayout}>
-                      <div className={styles.profileImageArea}>
-                        <div className={styles.profileImagePreview}>
-                          {profilePreview ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={profilePreview} alt={userDisplayName} />
-                          ) : (
-                            <span>{userDisplayName.slice(0, 1)}</span>
-                          )}
-                        </div>
+    <div className={styles.profileSettingGrid}>
+      <div className={styles.profileEditCard}>
+        <div className={styles.cardTitleRow}>
+          <div>
+            <h3>프로필</h3>
+            <p>이미지와 상점 소개를 먼저 설정해요.</p>
+          </div>
+        </div>
 
-                        <div className={styles.profileImageButtons}>
-                          <button
-                            type="button"
-                            className={styles.primaryButton}
-                            onClick={() => fileInputRef.current?.click()}
-                          >
-                            사진 변경
-                          </button>
-                          <button
-                            type="button"
-                            className={styles.subtleButton}
-                            onClick={() => {
-                              setProfileFile(null);
-                              setProfilePreview(profile.profileImageUrl || "");
-                              if (fileInputRef.current) fileInputRef.current.value = "";
-                            }}
-                          >
-                            취소
-                          </button>
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            hidden
-                            onChange={handleProfileFileChange}
-                          />
-                        </div>
-                      </div>
+        <div className={styles.shopNameBox}>
+          <label>상점명</label>
+          <div className={styles.inlineInputRow}>
+            <input
+              type="text"
+              value={profile.shopName || ""}
+              placeholder="상점명을 입력하세요"
+              readOnly
+            />
+            <span className={styles.inlineCount}>
+              {(profile.shopName || "").length}/10
+            </span>
+            <button type="button" className={styles.smallPrimaryButton}>
+              저장
+            </button>
+          </div>
+        </div>
 
-                      <div className={styles.profileInfoArea}>
-                        <div className={styles.fieldGridTwo}>
-                          <StaticField label="이름" value={profile.name || "-"} />
-                          <StaticField label="상점명" value={profile.shopName || "-"} />
-                          <StaticField label="휴대폰 번호" value={profile.phone || "-"} />
-                          <StaticField label="이메일" value={profile.email || "-"} />
-                        </div>
+        <div className={styles.profileImageSection}>
+          <div className={styles.largeProfileThumb}>
+            {profilePreview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profilePreview} alt={userDisplayName} />
+            ) : (
+              <span>{userDisplayName.slice(0, 1)}</span>
+            )}
+          </div>
 
-                        <div className={styles.fieldBlock}>
-                          <label>소개글</label>
-                          <textarea
-                            value={profileForm.intro}
-                            onChange={(event) =>
-                              setProfileForm((prev) => ({
-                                ...prev,
-                                intro: event.target.value,
-                              }))
-                            }
-                            maxLength={100}
-                            placeholder="자신을 소개하는 문장을 입력해주세요."
-                          />
-                          <div className={styles.fieldCount}>{profileForm.intro.length}/100</div>
-                        </div>
-                      </div>
-                    </div>
+          <div className={styles.profileImageActionArea}>
+            <div className={styles.profileImageActionRow}>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                사진 변경
+              </button>
+              <button
+                type="button"
+                className={styles.subtleButton}
+                onClick={() => {
+                  setProfileFile(null);
+                  setProfilePreview(profile.profileImageUrl || "");
+                  if (fileInputRef.current) fileInputRef.current.value = "";
+                }}
+              >
+                삭제
+              </button>
+            </div>
 
-                    <div className={styles.actionRow}>
-                      <button
-                        type="button"
-                        className={styles.ghostButton}
-                        onClick={() => {
-                          setProfileForm({ intro: profile.intro || "" });
-                          setProfileFile(null);
-                          setProfilePreview(profile.profileImageUrl || "");
-                        }}
-                      >
-                        취소
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.primaryButton}
-                        onClick={handleSaveProfile}
-                        disabled={saving}
-                      >
-                        {saving ? "저장 중..." : "변경사항 저장"}
-                      </button>
-                    </div>
-                  </div>
-                )}
+            <p className={styles.fileGuide}>JPG/PNG · 최대 5MB</p>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={handleProfileFileChange}
+            />
+          </div>
+        </div>
+
+        <div className={styles.introBox}>
+          <label>상점 소개글</label>
+          <div className={styles.introTextareaWrap}>
+            <textarea
+              value={profileForm.intro}
+              onChange={(event) =>
+                setProfileForm((prev) => ({
+                  ...prev,
+                  intro: event.target.value,
+                }))
+              }
+              maxLength={200}
+              placeholder="동네에서 필요한 물품을 편하게 빌릴 수 있도록 운영하고 있어요."
+            />
+            <div className={styles.introBottomRow}>
+              <span className={styles.inlineCount}>
+                {profileForm.intro.length}/200
+              </span>
+              <button
+                type="button"
+                className={styles.smallPrimaryButton}
+                onClick={handleSaveProfile}
+                disabled={saving}
+              >
+                저장
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.accountEditCard}>
+        <div className={styles.cardTitleRow}>
+          <div>
+            <h3>계정 정보</h3>
+            <p>연락처/이메일/주소 변경은 인증이 필요할 수 있어요.</p>
+          </div>
+        </div>
+
+        <div className={styles.accountFieldGroup}>
+          <label>이름</label>
+          <div className={styles.fullStaticField}>
+            <span>{profile.name || "-"}</span>
+          </div>
+        </div>
+
+        <div className={styles.accountFieldGroup}>
+          <label>연락처</label>
+          <div className={styles.actionFieldRow}>
+            <input type="text" value={profile.phone || ""} readOnly />
+            <button type="button" className={styles.authButton}>
+              휴대폰 인증
+            </button>
+          </div>
+          <small>번호 변경 시 재인증이 필요해요.</small>
+        </div>
+
+        <div className={styles.accountFieldGroup}>
+          <label>이메일</label>
+          <div className={styles.actionFieldRow}>
+            <input type="text" value={profile.email || ""} readOnly />
+            <button type="button" className={styles.authButton}>
+              이메일 인증
+            </button>
+          </div>
+          <small>알림/거래 안내가 이메일로 발송돼요.</small>
+        </div>
+      </div>
+    </div>
+
+    <div className={styles.bottomSubmitRow}>
+      <button
+        type="button"
+        className={styles.ghostButton}
+        onClick={() => {
+          setProfileForm({ intro: profile.intro || "" });
+          setProfileFile(null);
+          setProfilePreview(profile.profileImageUrl || "");
+        }}
+      >
+        취소
+      </button>
+      <button
+        type="button"
+        className={styles.primaryButton}
+        onClick={handleSaveProfile}
+        disabled={saving}
+      >
+        {saving ? "저장 중..." : "변경사항 저장"}
+      </button>
+    </div>
+  </div>
+)}
 
                 {activeMenu === "notifications" && (
-                  <div className={styles.panel}>
-                    <div className={styles.panelHeader}>
-                      <div>
-                        <h2>알림 설정</h2>
-                        <p>원하는 알림만 켜고 받을 수 있어요.</p>
-                      </div>
-                    </div>
+  <div className={styles.notificationSettingWrap}>
+    <div className={styles.notificationSettingHead}>
+      <div>
+        <h2>알림 설정</h2>
+        <p>거래/예약/리뷰 알림을 원하는 방식으로 받아보세요.</p>
+      </div>
+    </div>
 
-                    <div className={styles.notificationGroup}>
-                      <div className={styles.notificationGroupHead}>알림 설정</div>
+    <div className={styles.notificationPanelCard}>
+      <div className={styles.notificationPanelHead}>
+        <strong>알림 수단</strong>
+        <p>필요한 채널만 켜두면 더 간결해요.</p>
+      </div>
 
-                      <NotificationRow
-                        title="채팅 알림"
-                        desc="새 메시지가 오면 푸시로 알려드려요."
-                        checked={notifications.chatPush}
-                        onToggle={() => handleToggleNotification("chatPush")}
-                      />
-                      <NotificationRow
-                        title="대여상태 알림"
-                        desc="대여 요청, 승인, 반납 상태가 바뀌면 안내해요."
-                        checked={notifications.rentStatusPush}
-                        onToggle={() => handleToggleNotification("rentStatusPush")}
-                      />
-                      <NotificationRow
-                        title="커뮤니티 알림"
-                        desc="댓글, 답글, 인기글 관련 소식을 받아볼 수 있어요."
-                        checked={notifications.communityPush}
-                        onToggle={() => handleToggleNotification("communityPush")}
-                      />
-                      <NotificationRow
-                        title="마케팅 수신 동의"
-                        desc="이벤트, 쿠폰, 프로모션 정보를 받아볼 수 있어요."
-                        checked={notifications.marketingOptIn}
-                        onToggle={() => handleToggleNotification("marketingOptIn")}
-                      />
-                    </div>
-                  </div>
-                )}
+      <div className={styles.notificationRows}>
+        <NotificationDesignRow
+          title="푸시 알림"
+          desc="예약요청/수락/반납, 채팅, 리뷰"
+          checked={notifications.rentStatusPush}
+          onToggle={() => handleToggleNotification("rentStatusPush")}
+        />
+
+        <NotificationDesignRow
+          title="문자(SMS)"
+          desc="중요 안내만 문자로 받아요"
+          checked={false}
+          disabled
+        />
+
+        <NotificationDesignRow
+          title="이메일"
+          desc="정산/약속, 정책 변경 안내"
+          checked={notifications.communityPush}
+          onToggle={() => handleToggleNotification("communityPush")}
+        />
+      </div>
+    </div>
+
+    <div className={styles.notificationPanelCard}>
+      <div className={styles.notificationPanelHead}>
+        <strong>알림 종류</strong>
+        <p>원치 않는 알림은 끌 수 있어요.</p>
+      </div>
+
+      <div className={styles.notificationRows}>
+        <NotificationDesignRow
+          title="예약 요청/수락"
+          desc="예약이 들어오거나 수락/거절될 때"
+          checked={notifications.rentStatusPush}
+          onToggle={() => handleToggleNotification("rentStatusPush")}
+        />
+
+        <NotificationDesignRow
+          title="채팅 메시지"
+          desc="새 메시지 도착"
+          checked={notifications.chatPush}
+          onToggle={() => handleToggleNotification("chatPush")}
+        />
+
+        <NotificationDesignRow
+          title="반납/연장 알림"
+          desc="반납 예정일, 연장 가능 여부"
+          checked={notifications.rentStatusPush}
+          onToggle={() => handleToggleNotification("rentStatusPush")}
+        />
+
+        <NotificationDesignRow
+          title="리뷰/평가"
+          desc="리뷰 작성/도착 알림"
+          checked={notifications.communityPush}
+          onToggle={() => handleToggleNotification("communityPush")}
+        />
+
+        <NotificationDesignRow
+          title="마케팅/추천"
+          desc="추천 아이템, 이벤트 소식"
+          checked={notifications.marketingOptIn}
+          onToggle={() => handleToggleNotification("marketingOptIn")}
+        />
+      </div>
+    </div>
+
+    <div className={styles.bottomSubmitRow}>
+      <button type="button" className={styles.ghostButton}>
+        취소
+      </button>
+      <button type="button" className={styles.primaryButton}>
+        저장
+      </button>
+    </div>
+  </div>
+)}
 
                 {activeMenu === "security" && (
-                  <div className={styles.panel}>
-                    <div className={styles.panelHeader}>
-                      <div>
-                        <h2>계정 / 보안</h2>
-                        <p>현재 API 명세에는 비밀번호 변경 엔드포인트가 없어 UI만 먼저 연결해뒀어요.</p>
-                      </div>
-                    </div>
+  <div className={styles.securitySettingWrap}>
+    <div className={styles.securitySettingHead}>
+      <div>
+        <h2>계정 / 보안</h2>
+        <p>비밀번호 변경, 로그인 보안, 인증 수단을 관리해요.</p>
+      </div>
+    </div>
 
-                    <div className={styles.securitySection}>
-                      <div className={styles.sectionTitle}>계정 정보</div>
-                      <div className={styles.fieldGridTwo}>
-                        <StaticField label="이름" value={profile.name || "-"} />
-                        <StaticField label="이메일" value={profile.email || "-"} />
-                        <StaticField label="휴대폰 번호" value={profile.phone || "-"} />
-                        <StaticField label="상점명" value={profile.shopName || "-"} />
-                      </div>
-                    </div>
+    <div className={styles.securityPanelCard}>
+      <div className={styles.securityPanelHead}>
+        <strong>비밀번호 변경</strong>
+        <p>정기적으로 변경하면 안전해요.</p>
+      </div>
 
-                    <div className={styles.securitySection}>
-                      <div className={styles.sectionTitle}>비밀번호 변경</div>
-                      <div className={styles.fieldGridTwo}>
-                        <InputField label="현재 비밀번호" type="password" placeholder="현재 비밀번호 입력" />
-                        <InputField label="새 비밀번호" type="password" placeholder="새 비밀번호 입력" />
-                        <div className={styles.fieldSpanTwo}>
-                          <InputField
-                            label="새 비밀번호 확인"
-                            type="password"
-                            placeholder="새 비밀번호를 다시 입력"
-                          />
-                        </div>
-                      </div>
-                      <div className={styles.inlineActionRow}>
-                        <button type="button" className={styles.primaryButton} disabled>
-                          API 준비중
-                        </button>
-                      </div>
-                    </div>
+      <div className={styles.passwordFormWrap}>
+        <div className={styles.passwordFieldBlock}>
+          <label>현재 비밀번호</label>
+          <input type="password" placeholder="••••••••" />
+        </div>
 
-                    <div className={`${styles.securitySection} ${styles.helpSection}`}>
-                      <div className={styles.sectionTitle}>보안 안내</div>
-                      <ul>
-                        <li>로그인 토큰은 localStorage 또는 sessionStorage 기준으로 읽어와요.</li>
-                        <li>비밀번호 변경 API가 추가되면 바로 연결할 수 있게 구조를 나눠뒀어요.</li>
-                        <li>필요하면 회원 탈퇴, 소셜 연동 해제 UI도 이어서 붙일 수 있어요.</li>
-                      </ul>
-                    </div>
-                  </div>
-                )}
+        <div className={styles.passwordChangeRow}>
+          <div className={styles.passwordFieldBlock}>
+            <label>새 비밀번호</label>
+            <input type="password" placeholder="영문/숫자/특수문자 8자+" />
+          </div>
+
+          <button type="button" className={styles.primaryButton}>
+            변경하기
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div className={styles.securityPanelCard}>
+      <div className={styles.securityPanelHeadBlue}>
+        <strong>안전 거래 설정</strong>
+        <p>사고를 줄이는 데 도움이 되는 옵션이에요. (권장)</p>
+      </div>
+
+      <div className={styles.securityOptionRows}>
+        <SecurityOptionRow
+          title="본인인증 사용자만 예약 요청 허용"
+          desc="미인증 사용자는 예약 요청 버튼이 비활성화돼요"
+          checked={true}
+        />
+
+        <SecurityOptionRow
+          title="채팅 후 예약(최소 1회 메시지)"
+          desc="대여 기간/대여 시간 합의 후 예약 확정"
+          checked={true}
+        />
+      </div>
+
+      <div className={styles.securitySubSection}>
+        <label className={styles.securitySubLabel}>보증금 환불 방식</label>
+        <p className={styles.securitySubDesc}>반납 확인 후 환불 흐름을 선택할 수 있어요</p>
+
+        <div className={styles.refundButtonRow}>
+          <button type="button" className={styles.primaryWideButton}>
+            대여자 승인 후 환불
+          </button>
+          <button type="button" className={styles.softButton}>
+            자동 환불(기본)
+          </button>
+          <button type="button" className={styles.softButton}>
+            정책 자세히
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div className={styles.securityPanelCard}>
+      <div className={styles.securityPanelHead}>
+        <strong>개인정보 보호</strong>
+        <p>동네 기반 서비스라 노출 범위를 조절할 수 있어요.</p>
+      </div>
+
+      <div className={styles.privacyGrid}>
+        <div className={styles.privacyField}>
+          <label>주소 공개 범위</label>
+          <select defaultValue="동 단위까지만">
+            <option>동 단위까지만</option>
+            <option>구 단위까지만</option>
+            <option>비공개</option>
+          </select>
+          <small>※ 전체번호 공개는 거래 신뢰도에 영향을 줄 수 있어요.</small>
+        </div>
+
+        <div className={styles.privacyField}>
+          <label>연락 방식</label>
+          <select defaultValue="전화번호 비공개(채팅)">
+            <option>전화번호 비공개(채팅)</option>
+            <option>예약 확정 후 공개</option>
+            <option>항상 공개</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div className={styles.reportSection}>
+      <div className={styles.reportHead}>
+        <strong>차단 / 신고</strong>
+        <p>불편한 사용자나 위험 거래를 미리 차단할 수 있어요.</p>
+      </div>
+
+      <div className={styles.reportButtonRow}>
+        <button type="button" className={styles.softButton}>
+          차단 목록
+        </button>
+        <button type="button" className={styles.softButton}>
+          신고 내역
+        </button>
+        <button type="button" className={styles.warnButton}>
+          위험 거래 신고하기
+        </button>
+      </div>
+    </div>
+
+    <div className={styles.bottomSubmitRow}>
+      <button type="button" className={styles.ghostButton}>
+        취소
+      </button>
+      <button type="button" className={styles.primaryButton}>
+        변경사항 저장
+      </button>
+    </div>
+  </div>
+)}
 
                 {activeMenu === "settlement" && (
-                  <div className={styles.panel}>
-                    <div className={styles.panelHeader}>
-                      <div>
-                        <h2>정산 / 출금</h2>
-                        <p>정산 계좌 등록, 1원 인증, 정산 요약을 확인할 수 있어요.</p>
-                      </div>
-                    </div>
+  <div className={styles.settlementSettingWrap}>
+    <div className={styles.settlementSettingHead}>
+      <div>
+        <h2>결제 / 정산</h2>
+        <p>보증금 결제 수단과 정산 계좌를 관리해요.</p>
+      </div>
+    </div>
 
-                    <div className={styles.settlementGrid}>
-                      <div className={styles.settlementBox}>
-                        <div className={styles.sectionTitle}>정산 계좌</div>
+    <div className={styles.settlementPanelCard}>
+      <div className={styles.settlementPanelHead}>
+        <strong>정산 계좌 인증</strong>
+        <p>본인명의의 계좌 인증을 완료해야 정산이 가능해요.</p>
+      </div>
 
-                        {settlementAccount?.payoutAccountId ? (
-                          <div className={styles.registeredAccountCard}>
-                            <div>
-                              <strong>
-                                {settlementAccount.bankName} {settlementAccount.accountNumberMasked}
-                              </strong>
-                              <p>{settlementAccount.accountHolder}</p>
-                            </div>
-                            <div className={styles.registeredMeta}>
-                              <span
-                                className={`${styles.verifyBadge} ${
-                                  settlementAccount.verified ? styles.verifyBadgeActive : ""
-                                }`}
-                              >
-                                {settlementAccount.verified ? "인증완료" : "미인증"}
-                              </span>
-                              <small>{formatDateText(settlementAccount.createdAt)}</small>
-                            </div>
-                            <button
-                              type="button"
-                              className={styles.deleteTextButton}
-                              onClick={handleDeleteSettlementAccount}
-                              disabled={saving}
-                            >
-                              계좌 삭제
-                            </button>
-                          </div>
-                        ) : (
-                          <div className={styles.accountFormGrid}>
-                            <SelectField
-                              label="은행"
-                              value={verifyForm.bankName}
-                              options={BANK_OPTIONS}
-                              onChange={(value) =>
-                                setVerifyForm((prev) => ({ ...prev, bankName: value }))
-                              }
-                            />
-                            <InputField
-                              label="계좌번호"
-                              value={verifyForm.accountNumber}
-                              onChange={(event) =>
-                                setVerifyForm((prev) => ({
-                                  ...prev,
-                                  accountNumber: event.target.value,
-                                }))
-                              }
-                              placeholder="- 없이 입력"
-                            />
-                            <InputField
-                              label="예금주"
-                              value={verifyForm.accountHolder}
-                              onChange={(event) =>
-                                setVerifyForm((prev) => ({
-                                  ...prev,
-                                  accountHolder: event.target.value,
-                                }))
-                              }
-                              placeholder="예금주명 입력"
-                            />
+      {settlementAccount?.payoutAccountId ? (
+        <div className={styles.verifiedAccountBox}>
+          <div className={styles.verifiedAccountMain}>
+            <div>
+              <span className={styles.verifiedLabel}>등록된 계좌</span>
+              <strong>
+                {settlementAccount.bankName} {settlementAccount.accountNumberMasked}
+              </strong>
+              <p>{settlementAccount.accountHolder}</p>
+            </div>
 
-                            <div className={styles.fieldSpanThree}>
-                              <div className={styles.verifyRequestRow}>
-                                <button
-                                  type="button"
-                                  className={styles.primaryButton}
-                                  onClick={handleRequestVerification}
-                                  disabled={saving}
-                                >
-                                  1원 인증 요청
-                                </button>
-                                {verifyState.maskedAccount && (
-                                  <p className={styles.verifyGuideText}>
-                                    입금계좌: {verifyState.maskedAccount}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
+            <div className={styles.verifiedSide}>
+              <span
+                className={`${styles.verifyBadge} ${
+                  settlementAccount.verified ? styles.verifyBadgeActive : ""
+                }`}
+              >
+                {settlementAccount.verified ? "인증완료" : "미인증"}
+              </span>
+              <small>{formatDateText(settlementAccount.createdAt)}</small>
+            </div>
+          </div>
 
-                            <div className={styles.fieldSpanThree}>
-                              <div className={styles.verifyConfirmBox}>
-                                <InputField
-                                  label="입금자명 뒤 3자리"
-                                  value={confirmCode}
-                                  onChange={(event) => setConfirmCode(event.target.value)}
-                                  placeholder="예: 123"
-                                />
-                                <button
-                                  type="button"
-                                  className={styles.primaryButton}
-                                  onClick={handleConfirmVerification}
-                                  disabled={saving}
-                                >
-                                  인증 확인
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
+          <div className={styles.verifiedActionRow}>
+            <button
+              type="button"
+              className={styles.deleteTextButton}
+              onClick={handleDeleteSettlementAccount}
+              disabled={saving}
+            >
+              계좌 삭제
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className={styles.settlementAccountForm}>
+          <div className={styles.settlementAccountGrid}>
+            <SelectField
+              label="은행"
+              value={verifyForm.bankName}
+              options={BANK_OPTIONS}
+              onChange={(value) =>
+                setVerifyForm((prev) => ({ ...prev, bankName: value }))
+              }
+            />
 
-                      <div className={styles.settlementBox}>
-                        <div className={styles.sectionTitle}>정산 요약</div>
-                        <div className={styles.summaryGrid}>
-                          <SummaryCard
-                            title="정산 예정 금액"
-                            value={formatCurrency(settlementSummary.scheduledAmount)}
-                            active
-                          />
-                          <SummaryCard
-                            title="보증금 합계"
-                            value={formatCurrency(settlementSummary.depositAmount)}
-                          />
-                          <SummaryCard
-                            title="최근 정산 금액"
-                            value={formatCurrency(settlementSummary.recentPayoutAmount)}
-                          />
-                        </div>
+            <InputField
+              label="계좌번호"
+              value={verifyForm.accountNumber}
+              onChange={(event) =>
+                setVerifyForm((prev) => ({
+                  ...prev,
+                  accountNumber: event.target.value,
+                }))
+              }
+              placeholder="예: 123-456-789012"
+            />
 
-                        <div className={styles.summaryMetaList}>
-                          <SummaryMeta
-                            label="다음 정산일"
-                            value={formatDateText(settlementSummary.nextPayoutDate)}
-                          />
-                          <SummaryMeta
-                            label="진행 중 대여"
-                            value={`${settlementSummary.activeRentalCount || 0}건`}
-                          />
-                          <SummaryMeta
-                            label="최근 정산 기준"
-                            value={`${settlementSummary.recentDays || 30}일`}
-                          />
-                        </div>
-                      </div>
-                    </div>
+            <InputField
+              label="예금주"
+              value={verifyForm.accountHolder}
+              onChange={(event) =>
+                setVerifyForm((prev) => ({
+                  ...prev,
+                  accountHolder: event.target.value,
+                }))
+              }
+              placeholder="이름"
+            />
 
-                    <div className={styles.actionRow}>
-                      <button
-                        type="button"
-                        className={styles.ghostButton}
-                        onClick={loadSettingsData}
-                      >
-                        새로고침
-                      </button>
-                    </div>
-                  </div>
-                )}
+            <div className={styles.accountVerifyButtonWrap}>
+              <button
+                type="button"
+                className={styles.authButton}
+                onClick={handleRequestVerification}
+                disabled={saving}
+              >
+                계좌 인증
+              </button>
+            </div>
+          </div>
+
+          <p className={styles.accountGuideText}>
+            ※ 보증금 계좌 변경 시 신분증 위임 인증이 필요해요.
+          </p>
+
+          {verifyState.maskedAccount && (
+            <div className={styles.verifyConfirmInline}>
+              <div className={styles.verifyInlineText}>
+                <strong>입금계좌</strong>
+                <p>{verifyState.maskedAccount}</p>
+              </div>
+
+              <div className={styles.verifyInlineInput}>
+                <InputField
+                  label="입금자명 뒤 3자리"
+                  value={confirmCode}
+                  onChange={(event) => setConfirmCode(event.target.value)}
+                  placeholder="예: 123"
+                />
+              </div>
+
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={handleConfirmVerification}
+                disabled={saving}
+              >
+                인증 확인
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+
+    <div className={styles.settlementPanelCard}>
+      <div className={styles.settlementPanelHeadBlue}>
+        <strong>결제 수단</strong>
+        <p>대여 시 결제에 사용할 수단을 선택해요.</p>
+      </div>
+
+      <div className={styles.paymentMethodWrap}>
+        <button type="button" className={styles.paymentMethodButton}>
+          <span>선택</span>
+          <strong>신용/체크카드</strong>
+        </button>
+
+        <button type="button" className={styles.paymentMethodButton}>
+          <span>선택</span>
+          <strong>계좌이체</strong>
+        </button>
+      </div>
+    </div>
+
+    <div className={styles.settlementPanelCard}>
+      <div className={styles.settlementPanelHead}>
+        <strong>정산 요약</strong>
+        <p>이번 달 정산 현황을 확인해요.</p>
+      </div>
+
+      <div className={styles.summaryCardRow}>
+        <div className={`${styles.summaryInfoCard} ${styles.summaryInfoCardActive}`}>
+          <span>정산 예정</span>
+          <strong>{formatRoundedHundred(settlementSummary.scheduledAmount)}</strong>
+          <p>다음 정산일: {formatDateText(settlementSummary.nextPayoutDate)}</p>
+        </div>
+
+        <div className={styles.summaryInfoCard}>
+          <span>보증금 보관</span>
+          <strong>{formatCurrency(settlementSummary.depositAmount)}</strong>
+          <p>진행 중 대여 {settlementSummary.activeRentalCount || 0}건</p>
+        </div>
+
+        <div className={styles.summaryInfoCard}>
+          <span>정산 내역</span>
+          <strong>{formatCurrency(settlementSummary.recentPayoutAmount)}</strong>
+          <p>최근 {settlementSummary.recentDays || 30}일</p>
+        </div>
+      </div>
+
+      <div className={styles.summaryActionRow}>
+        <button type="button" className={styles.primaryWideButton}>
+          정산 내역 보기
+        </button>
+        <button type="button" className={styles.softButton}>
+          보증금 정책 보기
+        </button>
+      </div>
+    </div>
+
+    <div className={styles.bottomSubmitRow}>
+      <button
+        type="button"
+        className={styles.ghostButton}
+        onClick={loadSettingsData}
+      >
+        취소
+      </button>
+      <button type="button" className={styles.primaryButton}>
+        변경사항 저장
+      </button>
+    </div>
+  </div>
+)}
               </>
             )}
           </section>
@@ -827,21 +1089,72 @@ function SelectField({ label, value, onChange, options }) {
   );
 }
 
-function NotificationRow({ title, desc, checked, onToggle }) {
+function NotificationDesignRow({
+  title,
+  desc,
+  checked,
+  onToggle,
+  disabled = false,
+}) {
   return (
-    <div className={styles.notificationRow}>
-      <div className={styles.notificationText}>
+    <div className={styles.notificationDesignRow}>
+      <div className={styles.notificationDesignText}>
         <strong>{title}</strong>
         <p>{desc}</p>
       </div>
-      <button
-        type="button"
-        className={`${styles.toggleSwitch} ${checked ? styles.toggleSwitchOn : ""}`}
-        onClick={onToggle}
-        aria-pressed={checked}
-      >
-        <span className={styles.toggleThumb} />
-      </button>
+
+      <div className={styles.notificationControl}>
+        <span
+          className={`${styles.toggleStateText} ${
+            checked ? styles.toggleStateOn : styles.toggleStateOff
+          }`}
+        >
+          {checked ? "ON" : "OFF"}
+        </span>
+
+        <button
+          type="button"
+          className={`${styles.toggleSwitch} ${
+            checked ? styles.toggleSwitchOn : ""
+          } ${disabled ? styles.toggleDisabled : ""}`}
+          onClick={disabled ? undefined : onToggle}
+          aria-pressed={checked}
+          disabled={disabled}
+        >
+          <span className={styles.toggleThumb} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SecurityOptionRow({ title, desc, checked }) {
+  return (
+    <div className={styles.securityOptionRow}>
+      <div className={styles.securityOptionText}>
+        <strong>{title}</strong>
+        <p>{desc}</p>
+      </div>
+
+      <div className={styles.notificationControl}>
+        <span
+          className={`${styles.toggleStateText} ${
+            checked ? styles.toggleStateOn : styles.toggleStateOff
+          }`}
+        >
+          {checked ? "ON" : "OFF"}
+        </span>
+
+        <button
+          type="button"
+          className={`${styles.toggleSwitch} ${
+            checked ? styles.toggleSwitchOn : ""
+          }`}
+          aria-pressed={checked}
+        >
+          <span className={styles.toggleThumb} />
+        </button>
+      </div>
     </div>
   );
 }
@@ -862,4 +1175,24 @@ function SummaryMeta({ label, value }) {
       <strong>{value}</strong>
     </div>
   );
+}
+
+function formatRoundedHundred(value) {
+  const num = Number(value || 0);
+
+  const remainder = num % 100;
+
+  let rounded;
+
+  if (remainder >= 50) {
+    rounded = num + (100 - remainder); // 올림
+  } else {
+    rounded = num - remainder; // 내림
+  }
+
+  return new Intl.NumberFormat("ko-KR", {
+    style: "currency",
+    currency: "KRW",
+    maximumFractionDigits: 0,
+  }).format(rounded);
 }

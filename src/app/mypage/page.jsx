@@ -1,4 +1,5 @@
 "use client";
+
 import {
   getMyPageMainInfo,
   getMyItems,
@@ -7,69 +8,33 @@ import {
   getFavorites,
   getReviews,
 } from "@/services/mypage";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./page.module.css";
 import Link from "next/link";
 
 export default function MyPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const sortRef = useRef(null);
+
   const [activeTab, setActiveTab] = useState("myItems");
   const [sortType, setSortType] = useState("latest");
   const [mainInfo, setMainInfo] = useState(null);
   const [avgRating, setAvgRating] = useState(0);
   const [isSortOpen, setIsSortOpen] = useState(false);
-  const sortRef = useRef(null);
 
- useEffect(() => {
-  async function fetchTabData() {
-    setLoading(true);
-    setError("");
+  const [myItems, setMyItems] = useState([]);
+  const [rentalItems, setRentalItems] = useState([]);
+  const [receivedReservations, setReceivedReservations] = useState([]);
+  const [sentReservations, setSentReservations] = useState([]);
+  const [favoriteItems, setFavoriteItems] = useState([]);
+  const [reviewItems, setReviewItems] = useState([]);
 
-    try {
-      if (activeTab === "myItems") {
-        const data = await getMyItems();
-        console.log("내상품 응답", data);
-        setMyItems(Array.isArray(data) ? data : []);
-      }
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-      if (activeTab === "rentals") {
-        const data = await getRentals();
-        console.log("대여상품 응답", data);
-        setRentalItems(Array.isArray(data) ? data : []);
-      }
-
-      if (activeTab === "reservations") {
-        const data = await getReservations();
-        console.log("예약상품 응답", data);
-        setReceivedReservations(data?.receivedRequests || []);
-        setSentReservations(data?.sentRequests || []);
-      }
-
-      if (activeTab === "favorites") {
-        const data = await getFavorites();
-        console.log("찜목록 응답", data);
-        setFavoriteItems(data?.items || []);
-      }
-
-      if (activeTab === "reviews") {
-        const data = await getReviews();
-        console.log("리뷰 응답", data);
-
-        setAvgRating(data?.avgRating || 0);
-        setReviewItems(Array.isArray(data?.reviews) ? data.reviews : []);
-      }
-    } catch (e) {
-      console.error(e);
-      setError(e.message || "데이터를 불러오지 못했어요.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  fetchTabData();
-}, [activeTab]);
-
-useEffect(() => {
-  async function fetchMainInfo() {
+  const fetchMainInfo = useCallback(async () => {
     try {
       const data = await getMyPageMainInfo();
       console.log("메인정보 응답", data);
@@ -77,75 +42,160 @@ useEffect(() => {
     } catch (e) {
       console.error(e);
     }
-  }
-
-  fetchMainInfo();
-}, []);
-
- const [myItems, setMyItems] = useState([]);
-  const [rentalItems, setRentalItems] = useState([]);
-  const [receivedReservations, setReceivedReservations] = useState([]);
-  const [sentReservations, setSentReservations] = useState([]);
-  const [favoriteItems, setFavoriteItems] = useState([]);
-  const [reviewItems, setReviewItems] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const tabs = [
-  { key: "myItems", label: "내 상품", count: `${mainInfo?.myItemCount ?? 0}개` },
-  { key: "rentals", label: "대여상품", count: `${mainInfo?.rentingItemCount ?? 0}건` },
-  { key: "reservations", label: "예약상품", count: `${mainInfo?.pendingOrderCount ?? 0}건` },
-  { key: "favorites", label: "찜목록", count: `${mainInfo?.favoriteItemCount ?? 0}개` },
-  { key: "reviews", label: "리뷰", count: `${mainInfo?.reviewCount ?? 0}개` },
-];
+  }, []);
 
   useEffect(() => {
-  async function fetchTabData() {
-    setLoading(true);
-    setError("");
+    fetchMainInfo();
+  }, [fetchMainInfo]);
 
+  useEffect(() => {
+  async function fetchReservationCount() {
     try {
-      if (activeTab === "myItems") {
-        const data = await getMyItems();
-        setMyItems(data?.items || data || []);
-      }
-
-      if (activeTab === "rentals") {
-        const data = await getRentals();
-        setRentalItems(data?.items || data || []);
-      }
-
-      if (activeTab === "reservations") {
-        const data = await getReservations();
-        setReceivedReservations(data?.received || []);
-        setSentReservations(data?.sent || []);
-      }
-
-      if (activeTab === "favorites") {
-        const data = await getFavorites();
-        setFavoriteItems(data?.items || data || []);
-      }
-
-      if (activeTab === "reviews") {
-        const data = await getReviews();
-        setReviewItems(data?.items || data || []);
-      }
+      const data = await getReservations();
+      setReceivedReservations(data?.receivedRequests || data?.received || []);
+      setSentReservations(data?.sentRequests || data?.sent || []);
     } catch (e) {
-      console.error(e);
-      setError(e.message || "데이터를 불러오지 못했어요.");
-    } finally {
-      setLoading(false);
+      console.error("예약 개수 초기 조회 실패", e);
     }
   }
 
-  fetchTabData();
-}, [activeTab]);
+  fetchReservationCount();
+}, []);
+
+  useEffect(() => {
+    if (searchParams.get("updated") === "1") {
+      fetchMainInfo();
+      router.replace("/mypage");
+    }
+  }, [searchParams, fetchMainInfo, router]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (sortRef.current && !sortRef.current.contains(event.target)) {
+        setIsSortOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    async function fetchTabData() {
+      setLoading(true);
+      setError("");
+
+      try {
+        if (activeTab === "myItems") {
+          const data = await getMyItems();
+          console.log("내상품 응답", data);
+          setMyItems(Array.isArray(data) ? data : data?.items || []);
+        }
+
+        if (activeTab === "rentals") {
+          const data = await getRentals();
+          console.log("대여상품 응답", data);
+          setRentalItems(Array.isArray(data) ? data : data?.items || []);
+        }
+
+        if (activeTab === "reservations") {
+          const data = await getReservations();
+          console.log("예약상품 응답", data);
+          setReceivedReservations(data?.receivedRequests || data?.received || []);
+          setSentReservations(data?.sentRequests || data?.sent || []);
+        }
+
+        if (activeTab === "favorites") {
+          const data = await getFavorites();
+          console.log("찜목록 응답", data);
+          setFavoriteItems(data?.items || (Array.isArray(data) ? data : []));
+        }
+
+        if (activeTab === "reviews") {
+          const data = await getReviews();
+          console.log("리뷰 응답", data);
+          setAvgRating(data?.avgRating || 0);
+          setReviewItems(
+            Array.isArray(data?.reviews)
+              ? data.reviews
+              : Array.isArray(data?.items)
+              ? data.items
+              : Array.isArray(data)
+              ? data
+              : []
+          );
+        }
+      } catch (e) {
+        console.error(e);
+        setError(e.message || "데이터를 불러오지 못했어요.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchTabData();
+  }, [activeTab]);
+
+  const tabs = useMemo(
+    () => [
+      { key: "myItems", label: "내 상품", count: `${mainInfo?.myItemCount ?? 0}개` },
+      { key: "rentals", label: "대여상품", count: `${mainInfo?.rentingItemCount ?? 0}건` },
+      { key: "reservations", label: "예약상품", count: `${receivedReservations.length + sentReservations.length}건` },
+      { key: "favorites", label: "찜목록", count: `${mainInfo?.favoriteItemCount ?? 0}개` },
+      { key: "reviews", label: "리뷰", count: `${mainInfo?.reviewCount ?? 0}개` },
+    ],
+    [mainInfo, receivedReservations.length, sentReservations.length]
+  );
+
+  const sortedMyItems = useMemo(() => {
+    const copied = [...myItems];
+    return copied.sort((a, b) => {
+      const aTime = new Date(a?.createdAt || 0).getTime();
+      const bTime = new Date(b?.createdAt || 0).getTime();
+
+      if (sortType === "latest") return bTime - aTime;
+      return aTime - bTime;
+    });
+  }, [myItems, sortType]);
+
+  const sortedRentalItems = useMemo(() => {
+    const copied = [...rentalItems];
+    return copied.sort((a, b) => {
+      const aTime = new Date(a?.createdAt || 0).getTime();
+      const bTime = new Date(b?.createdAt || 0).getTime();
+
+      if (sortType === "latest") return bTime - aTime;
+      return aTime - bTime;
+    });
+  }, [rentalItems, sortType]);
+
+  const sortedFavoriteItems = useMemo(() => {
+    const copied = [...favoriteItems];
+    return copied.sort((a, b) => {
+      const aTime = new Date(a?.createdAt || 0).getTime();
+      const bTime = new Date(b?.createdAt || 0).getTime();
+
+      if (sortType === "latest") return bTime - aTime;
+      return aTime - bTime;
+    });
+  }, [favoriteItems, sortType]);
+
+  const sortedReviewItems = useMemo(() => {
+    const copied = [...reviewItems];
+    return copied.sort((a, b) => {
+      const aTime = new Date(a?.createdAt || 0).getTime();
+      const bTime = new Date(b?.createdAt || 0).getTime();
+
+      if (sortType === "latest") return bTime - aTime;
+      return aTime - bTime;
+    });
+  }, [reviewItems, sortType]);
 
   return (
     <main className={styles.mypage}>
       <div className={styles.inner}>
-
-        {/* 상단 프로필 */}
         <section className={styles.topSection}>
           <div className={styles.profileWrap}>
             <div className={styles.profileLeft}>
@@ -154,7 +204,9 @@ useEffect(() => {
               <p>
                 ★★★★★ {mainInfo?.avgRating ?? 0} · 리뷰 {mainInfo?.reviewCount ?? 0}
               </p>
-              <button>프로필 수정</button>
+              <Link href="/settings">
+                <button type="button">프로필 수정</button>
+              </Link>
             </div>
 
             <div className={styles.profileRight}>
@@ -163,8 +215,9 @@ useEffect(() => {
                   <h1>{mainInfo?.nickname || "사용자"}</h1>
                   <p>{mainInfo?.areaName || "지역 미정"} · 깔끔 거래</p>
                 </div>
+
                 <div className={styles.profileBtns}>
-                  <button>동네 변경</button>
+                  <button type="button">동네 변경</button>
                   <Link href="/settings" className={styles.setbtn}>
                     설정
                   </Link>
@@ -186,14 +239,11 @@ useEffect(() => {
           </div>
         </section>
 
-        {/* 탭 */}
         <section className={styles.tabs}>
           {tabs.map((tab) => (
             <div
               key={tab.key}
-              className={`${styles.tab} ${
-                activeTab === tab.key ? styles.active : ""
-              }`}
+              className={`${styles.tab} ${activeTab === tab.key ? styles.active : ""}`}
               onClick={() => setActiveTab(tab.key)}
             >
               <span>{tab.label}</span>
@@ -209,14 +259,10 @@ useEffect(() => {
               className={styles.sortTrigger}
               onClick={() => setIsSortOpen((prev) => !prev)}
             >
-              <span>
-                정렬: {sortType === "latest" ? "최신순" : "오래된순"}
-              </span>
+              <span>정렬: {sortType === "latest" ? "최신순" : "오래된순"}</span>
 
               <span
-                className={`${styles.sortTriggerArrow} ${
-                  isSortOpen ? styles.isOpen : ""
-                }`}
+                className={`${styles.sortTriggerArrow} ${isSortOpen ? styles.isOpen : ""}`}
                 aria-hidden="true"
               >
                 <svg
@@ -269,16 +315,15 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* 상품 리스트 (내상품 기준) */}
         {loading && <p className={styles.stateText}>불러오는 중...</p>}
         {error && <p className={styles.stateText}>{error}</p>}
 
-        {activeTab === "myItems" && (
-          myItems.length === 0 ? (
+        {activeTab === "myItems" &&
+          (sortedMyItems.length === 0 ? (
             <p className={styles.stateText}>등록된 상품이 없습니다.</p>
           ) : (
             <section className={styles.grid}>
-              {myItems.map((item) => (
+              {sortedMyItems.map((item) => (
                 <div className={styles.card} key={item.itemId}>
                   <div className={styles.thumb}></div>
 
@@ -287,34 +332,31 @@ useEffect(() => {
                     {item.location} · {item.timeAgo}
                   </p>
                   <p className={styles.price}>
-                    ₩{Number(item.pricePerDay).toLocaleString()} / 하루
+                    ₩{Number(item.pricePerDay || 0).toLocaleString()} / 하루
                   </p>
 
                   <div className={styles.tags}>
-                    <span>보증금 ₩{Number(item.depositAmount).toLocaleString()}</span>
-                    <span>대여 {item.rentalDays}일</span>
-                    <span>{item.pickupLocation}</span>
+                    <span>보증금 ₩{Number(item.depositAmount || 0).toLocaleString()}</span>
+                    <span>대여 {item.rentalDays || 0}일</span>
+                    <span>{item.pickupLocation || "-"}</span>
                   </div>
                 </div>
               ))}
             </section>
-          )
-        )}
+          ))}
 
-        {activeTab === "rentals" && (
-          rentalItems.length === 0 ? (
+        {activeTab === "rentals" &&
+          (sortedRentalItems.length === 0 ? (
             <p className={styles.stateText}>대여중인 상품이 없습니다.</p>
           ) : (
             <section className={styles.rentalList}>
-              {rentalItems.map((item) => (
+              {sortedRentalItems.map((item) => (
                 <div className={styles.rentalCard} key={item.rentalId}>
                   <div className={styles.rentalShop}>
                     <div className={styles.rentalAvatar}></div>
 
                     <div className={styles.rentalShopInfo}>
-                      <p className={styles.rentalShopName}>
-                        {item.ownerNickname}
-                      </p>
+                      <p className={styles.rentalShopName}>{item.ownerNickname}</p>
                       <p className={styles.rentalShopRating}>
                         대여 상태 {item.rentalStatus}
                       </p>
@@ -337,8 +379,7 @@ useEffect(() => {
                 </div>
               ))}
             </section>
-          )
-        )}
+          ))}
 
         {activeTab === "reservations" && (
           <section className={styles.reservationTable}>
@@ -369,7 +410,9 @@ useEffect(() => {
                         <div className={styles.reservationShopRow}>
                           <div className={styles.reservationAvatar}></div>
                           <div className={styles.reservationShopInfo}>
-                            <p className={styles.reservationShopName}>{item.targetNickname}</p>
+                            <p className={styles.reservationShopName}>
+                              {item.targetNickname}
+                            </p>
                             <p className={styles.reservationShopRating}>
                               ★★★★★ {item.targetMannerScore}
                             </p>
@@ -377,7 +420,9 @@ useEffect(() => {
                         </div>
 
                         <h4>{item.title}</h4>
-                        <p className={styles.reservationCategory}>카테고리 · {item.category}</p>
+                        <p className={styles.reservationCategory}>
+                          카테고리 · {item.category}
+                        </p>
                         <p className={styles.reservationPeriod}>
                           대여 요청기간 : {item.requestPeriod}
                         </p>
@@ -406,7 +451,9 @@ useEffect(() => {
                         <div className={styles.reservationShopRow}>
                           <div className={styles.reservationAvatar}></div>
                           <div className={styles.reservationShopInfo}>
-                            <p className={styles.reservationShopName}>{item.targetNickname}</p>
+                            <p className={styles.reservationShopName}>
+                              {item.targetNickname}
+                            </p>
                             <p className={styles.reservationShopRating}>
                               ★★★★★ {item.targetMannerScore}
                             </p>
@@ -414,16 +461,16 @@ useEffect(() => {
                         </div>
 
                         <h4>{item.title}</h4>
-                        <p className={styles.reservationCategory}>카테고리 · {item.category}</p>
+                        <p className={styles.reservationCategory}>
+                          카테고리 · {item.category}
+                        </p>
                         <p className={styles.reservationPeriod}>
                           대여 요청기간 : {item.requestPeriod}
                         </p>
                       </div>
 
                       <div className={styles.reservationActions}>
-                        <button className={styles.reservationPrimaryBtn}>
-                          {item.status}
-                        </button>
+                        <button className={styles.reservationPrimaryBtn}>{item.status}</button>
                         <button className={styles.reservationSecondaryBtn}>채팅 보내기</button>
                       </div>
                     </div>
@@ -434,12 +481,12 @@ useEffect(() => {
           </section>
         )}
 
-        {activeTab === "favorites" && (
-          favoriteItems.length === 0 ? (
+        {activeTab === "favorites" &&
+          (sortedFavoriteItems.length === 0 ? (
             <p className={styles.stateText}>찜한 상품이 없습니다.</p>
           ) : (
             <section className={styles.favoriteGrid}>
-              {favoriteItems.map((item) => (
+              {sortedFavoriteItems.map((item) => (
                 <div className={styles.favoriteCard} key={item.itemId}>
                   <div className={styles.favoriteThumb}></div>
 
@@ -447,13 +494,17 @@ useEffect(() => {
                     <h3>{item.title || "-"}</h3>
                     <p className={styles.favoriteMeta}>{item.location || "-"}</p>
                     <p className={styles.favoritePrice}>
-                      {item.pricePerDay ? `₩${Number(item.pricePerDay).toLocaleString()} / 하루` : "-"}
+                      {item.pricePerDay
+                        ? `₩${Number(item.pricePerDay).toLocaleString()} / 하루`
+                        : "-"}
                     </p>
 
                     <div className={styles.favoriteTags}>
-                      {item.depositAmount && <span>보증금 ₩{Number(item.depositAmount).toLocaleString()}</span>}
-                      {item.rentalDays && <span>대여 {item.rentalDays}일</span>}
-                      {item.pickupLocation && <span>{item.pickupLocation}</span>}
+                      {item.depositAmount ? (
+                        <span>보증금 ₩{Number(item.depositAmount).toLocaleString()}</span>
+                      ) : null}
+                      {item.rentalDays ? <span>대여 {item.rentalDays}일</span> : null}
+                      {item.pickupLocation ? <span>{item.pickupLocation}</span> : null}
                     </div>
 
                     <button className={styles.favoriteHeart}>❤</button>
@@ -461,14 +512,13 @@ useEffect(() => {
                 </div>
               ))}
             </section>
-          )
-        )}
+          ))}
 
         {activeTab === "reviews" && (
           <section className={styles.reviewTab}>
             <div className={styles.reviewTopTitle}>
               <span>리뷰</span>
-              <strong>{reviewItems.length}</strong>
+              <strong>{sortedReviewItems.length}</strong>
             </div>
 
             <div className={styles.reviewSummaryBar}>
@@ -486,10 +536,10 @@ useEffect(() => {
             </div>
 
             <div className={styles.reviewFeed}>
-              {!Array.isArray(reviewItems) || reviewItems.length === 0 ? (
-                  <p className={styles.stateText}>등록된 리뷰가 없어요.</p>
-                ) : (
-                reviewItems.map((item) => (
+              {!Array.isArray(sortedReviewItems) || sortedReviewItems.length === 0 ? (
+                <p className={styles.stateText}>등록된 리뷰가 없어요.</p>
+              ) : (
+                sortedReviewItems.map((item) => (
                   <div className={styles.reviewFeedItem} key={item.reviewId}>
                     <div className={styles.reviewFeedTop}>
                       <div className={styles.reviewProfile}>
@@ -518,7 +568,6 @@ useEffect(() => {
             </div>
           </section>
         )}
-
       </div>
     </main>
   );

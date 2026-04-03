@@ -29,7 +29,7 @@ async function request(url, options = {}) {
 }
 
 export async function getProducts() {
-  return request("/bilyeoit/v1/products", {
+  return request("/bilyeoit/v1/items?sort=latest&page=0&size=8", {
     method: "GET",
   });
 }

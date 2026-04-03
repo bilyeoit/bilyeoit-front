@@ -701,3 +701,963 @@
     font-size: 20px;
   }
 }
+
+.profileSettingWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.profileSettingHead h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #172b4d;
+}
+
+.profileSettingHead p {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #7a8ca3;
+}
+
+.profileSettingGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 405px;
+  gap: 24px;
+  align-items: start;
+}
+
+.profileEditCard,
+.accountEditCard {
+  background: #fff;
+  border: 1px solid #dfe8f2;
+  border-radius: 24px;
+  padding: 22px;
+}
+
+.cardTitleRow h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #172b4d;
+}
+
+.cardTitleRow p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #8a99ad;
+}
+
+.shopNameBox {
+  margin-top: 20px;
+}
+
+.shopNameBox label,
+.introBox label,
+.accountFieldGroup label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #33455f;
+}
+
+.inlineInputRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.inlineInputRow input {
+  width: 100%;
+  height: 48px;
+  border: 1px solid #dbe5f0;
+  border-radius: 14px;
+  padding: 0 16px;
+  font-size: 14px;
+  color: #172b4d;
+  background: #fff;
+}
+
+.inlineCount {
+  font-size: 12px;
+  font-weight: 700;
+  color: #8a99ad;
+  white-space: nowrap;
+}
+
+.smallPrimaryButton {
+  height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: #1f3a5f;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.profileImageSection {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin-top: 18px;
+}
+
+.largeProfileThumb {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #dfeaf8, #eff5fd);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1f3a5f;
+  font-size: 32px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.largeProfileThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profileImageActionArea {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profileImageActionRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.fileGuide {
+  margin: 0;
+  font-size: 12px;
+  color: #8a99ad;
+}
+
+.introBox {
+  margin-top: 18px;
+}
+
+.introTextareaWrap {
+  border: 1px solid #dbe5f0;
+  border-radius: 18px;
+  padding: 14px 14px 12px;
+  background: #fff;
+}
+
+.introTextareaWrap textarea {
+  width: 100%;
+  min-height: 130px;
+  border: 0;
+  resize: none;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #172b4d;
+  background: transparent;
+  outline: none;
+  padding: 0;
+}
+
+.introBottomRow {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.accountFieldGroup {
+  margin-top: 20px;
+}
+
+.fullStaticField {
+  height: 48px;
+  border: 1px solid #dbe5f0;
+  border-radius: 14px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fff;
+}
+
+.fullStaticField span {
+  font-size: 14px;
+  font-weight: 600;
+  color: #172b4d;
+}
+
+.fullStaticField em {
+  font-style: normal;
+  font-size: 12px;
+  color: #8a99ad;
+}
+
+.actionFieldRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 134px;
+  gap: 10px;
+}
+
+.actionFieldRow input,
+.addressRow input,
+.accountFieldGroup > input {
+  width: 100%;
+  height: 48px;
+  border: 1px solid #dbe5f0;
+  border-radius: 14px;
+  padding: 0 16px;
+  font-size: 14px;
+  color: #172b4d;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.authButton {
+  height: 48px;
+  border: 1px solid #dbe5f0;
+  border-radius: 14px;
+  background: #eef4fb;
+  color: #35506f;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 16px;
+}
+
+.addressRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.accountFieldGroup > input + input {
+  margin-top: 10px;
+}
+
+.accountFieldGroup small {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #8a99ad;
+}
+
+.bottomSubmitRow {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.bottomSubmitRow .ghostButton,
+.bottomSubmitRow .primaryButton {
+  min-width: 132px;
+}
+
+@media (max-width: 1200px) {
+  .profileSettingGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .profileImageSection {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .inlineInputRow,
+  .actionFieldRow,
+  .addressRow {
+    grid-template-columns: 1fr;
+  }
+
+  .bottomSubmitRow {
+    flex-direction: column;
+  }
+
+  .bottomSubmitRow .ghostButton,
+  .bottomSubmitRow .primaryButton {
+    width: 100%;
+  }
+}
+
+.notificationSettingWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.notificationSettingHead h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #172b4d;
+}
+
+.notificationSettingHead p {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #7a8ca3;
+}
+
+.notificationPanelCard {
+  background: #fff;
+  border: 1px solid #dfe8f2;
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+.notificationPanelHead {
+  padding: 16px 18px;
+  background: #eff4fb;
+  border-bottom: 1px solid #e3ebf4;
+}
+
+.notificationPanelHead strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  color: #1f3a5f;
+}
+
+.notificationPanelHead p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #8a99ad;
+}
+
+.notificationRows {
+  display: flex;
+  flex-direction: column;
+}
+
+.notificationDesignRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 18px;
+  border-bottom: 1px solid #eef3f8;
+}
+
+.notificationDesignRow:last-child {
+  border-bottom: 0;
+}
+
+.notificationDesignText {
+  min-width: 0;
+}
+
+.notificationDesignText strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: #172b4d;
+}
+
+.notificationDesignText p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #7d8ea5;
+}
+
+.notificationControl {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.toggleStateText {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.toggleStateOn {
+  color: #8ea2bb;
+}
+
+.toggleStateOff {
+  color: #b1bfd0;
+}
+
+.toggleDisabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .notificationDesignRow {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .notificationControl {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+.securitySettingWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.securitySettingHead h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #172b4d;
+}
+
+.securitySettingHead p {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #7a8ca3;
+}
+
+.securityPanelCard {
+  background: #fff;
+  border: 1px solid #dfe8f2;
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+.securityPanelHead,
+.securityPanelHeadBlue {
+  padding: 16px 18px;
+  border-bottom: 1px solid #e7eef6;
+}
+
+.securityPanelHead {
+  background: #ffffff;
+}
+
+.securityPanelHeadBlue {
+  background: #eff4fb;
+}
+
+.securityPanelHead strong,
+.securityPanelHeadBlue strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  color: #1f3a5f;
+}
+
+.securityPanelHead p,
+.securityPanelHeadBlue p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #8a99ad;
+}
+
+.passwordFormWrap {
+  padding: 18px;
+}
+
+.passwordFieldBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.passwordFieldBlock label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #33455f;
+}
+
+.passwordFieldBlock input {
+  width: 100%;
+  height: 48px;
+  border: 1px solid #dbe5f0;
+  border-radius: 14px;
+  padding: 0 16px;
+  font-size: 14px;
+  color: #172b4d;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.passwordChangeRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px;
+  gap: 14px;
+  align-items: end;
+  margin-top: 18px;
+}
+
+.securityOptionRows {
+  display: flex;
+  flex-direction: column;
+}
+
+.securityOptionRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding: 18px;
+  border-bottom: 1px solid #eef3f8;
+}
+
+.securityOptionRow:last-child {
+  border-bottom: 0;
+}
+
+.securityOptionText strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: #172b4d;
+}
+
+.securityOptionText p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #7d8ea5;
+}
+
+.securitySubSection {
+  padding: 18px;
+  border-top: 1px solid #eef3f8;
+}
+
+.securitySubLabel {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #33455f;
+}
+
+.securitySubDesc {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #8a99ad;
+}
+
+.refundButtonRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.primaryWideButton {
+  min-width: 168px;
+  height: 44px;
+  border: 0;
+  border-radius: 14px;
+  background: #1f3a5f;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 0 18px;
+  cursor: pointer;
+}
+
+.softButton {
+  min-width: 140px;
+  height: 44px;
+  border: 1px solid #dbe5f0;
+  border-radius: 14px;
+  background: #f5f9fd;
+  color: #35506f;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 0 18px;
+  cursor: pointer;
+}
+
+.privacyGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  padding: 18px;
+}
+
+.privacyField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.privacyField label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #33455f;
+}
+
+.privacyField select {
+  width: 100%;
+  height: 48px;
+  border: 1px solid #dbe5f0;
+  border-radius: 14px;
+  padding: 0 16px;
+  font-size: 14px;
+  color: #172b4d;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.privacyField small {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #8a99ad;
+}
+
+.reportSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.reportHead strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  color: #1f3a5f;
+}
+
+.reportHead p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #8a99ad;
+}
+
+.reportButtonRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.warnButton {
+  min-width: 180px;
+  height: 44px;
+  border: 1px solid #ffd7d7;
+  border-radius: 14px;
+  background: #fff8f8;
+  color: #dc4b4b;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 0 18px;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .privacyGrid,
+  .passwordChangeRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .securityOptionRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .refundButtonRow,
+  .reportButtonRow,
+  .bottomSubmitRow {
+    flex-direction: column;
+  }
+
+  .primaryWideButton,
+  .softButton,
+  .warnButton {
+    width: 100%;
+  }
+}
+
+.settlementSettingWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.settlementSettingHead h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #172b4d;
+}
+
+.settlementSettingHead p {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #7a8ca3;
+}
+
+.settlementPanelCard {
+  background: #fff;
+  border: 1px solid #dfe8f2;
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+.settlementPanelHead,
+.settlementPanelHeadBlue {
+  padding: 16px 18px;
+  border-bottom: 1px solid #e7eef6;
+}
+
+.settlementPanelHead {
+  background: #fff;
+}
+
+.settlementPanelHeadBlue {
+  background: #eff4fb;
+}
+
+.settlementPanelHead strong,
+.settlementPanelHeadBlue strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  color: #1f3a5f;
+}
+
+.settlementPanelHead p,
+.settlementPanelHeadBlue p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #8a99ad;
+}
+
+.settlementAccountForm {
+  padding: 18px;
+}
+
+.settlementAccountGrid {
+  display: grid;
+  grid-template-columns: 1.1fr 1.8fr 1.2fr auto;
+  gap: 14px;
+  align-items: end;
+}
+
+.accountVerifyButtonWrap {
+  display: flex;
+  align-items: flex-end;
+}
+
+.accountGuideText {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: #8a99ad;
+}
+
+.verifyConfirmInline {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: end;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid #eef3f8;
+}
+
+.verifyInlineText strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #33455f;
+}
+
+.verifyInlineText p {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: #172b4d;
+}
+
+.verifiedAccountBox {
+  padding: 18px;
+}
+
+.verifiedAccountMain {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 18px;
+  border: 1px solid #dfe8f2;
+  border-radius: 18px;
+  background: #fbfdff;
+}
+
+.verifiedLabel {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #8a99ad;
+}
+
+.verifiedAccountMain strong {
+  display: block;
+  font-size: 18px;
+  color: #172b4d;
+}
+
+.verifiedAccountMain p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: #73839a;
+}
+
+.verifiedSide {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.verifiedSide small {
+  font-size: 12px;
+  color: #8a99ad;
+}
+
+.verifiedActionRow {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.paymentMethodWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 18px 18px;
+}
+
+.paymentMethodButton {
+  width: 320px;
+  max-width: 100%;
+  height: 52px;
+  border: 1px solid #dbe5f0;
+  border-radius: 16px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 18px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.paymentMethodButton span {
+  font-size: 12px;
+  font-weight: 700;
+  color: #8a99ad;
+}
+
+.paymentMethodButton strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1f3a5f;
+}
+
+.summaryCardRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  padding: 18px;
+}
+
+.summaryInfoCard {
+  min-height: 132px;
+  border: 1px solid #dfe8f2;
+  border-radius: 18px;
+  background: #fff;
+  padding: 20px 18px;
+}
+
+.summaryInfoCardActive {
+  background: #eff4fb;
+}
+
+.summaryInfoCard span {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #172b4d;
+}
+
+.summaryInfoCard strong {
+  display: block;
+  margin-top: 16px;
+  font-size: 36px;
+  line-height: 1.1;
+  font-weight: 800;
+  color: #1f2b3d;
+}
+
+.summaryInfoCard p {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: #8a99ad;
+}
+
+.summaryActionRow {
+  display: flex;
+  gap: 12px;
+  padding: 0 18px 18px;
+}
+
+@media (max-width: 1100px) {
+  .settlementAccountGrid,
+  .verifyConfirmInline,
+  .summaryCardRow {
+    grid-template-columns: 1fr;
+  }
+
+  .accountVerifyButtonWrap,
+  .summaryActionRow {
+    width: 100%;
+  }
+
+  .summaryActionRow {
+    flex-direction: column;
+  }
+
+  .summaryActionRow .primaryWideButton,
+  .summaryActionRow .softButton {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .verifiedAccountMain {
+    flex-direction: column;
+  }
+
+  .verifiedSide {
+    align-items: flex-start;
+  }
+}

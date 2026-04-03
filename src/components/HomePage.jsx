@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import LoginModal from "./LoginModal";
-import { getLocations, getProducts } from "../services/home";
+import { getProducts } from "../services/home";
 
 const STATS = [
   { label: "최근 24시간", value: "신규 38개" },
@@ -55,19 +55,11 @@ export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const [products, setProducts] = useState([]);
-  const [locationData, setLocationData] = useState({});
   const [productsLoading, setProductsLoading] = useState(true);
-  const [locationsLoading, setLocationsLoading] = useState(true);
   const [productsError, setProductsError] = useState("");
-  const [locationsError, setLocationsError] = useState("");
 
-  const [isLocationOpen, setIsLocationOpen] = useState(false);
-  const [step, setStep] = useState(0);
-  const [selectedLocation, setSelectedLocation] = useState({
-    city: "",
-    district: "",
-    dong: "",
-  });
+  const [locationKeyword, setLocationKeyword] = useState("");
+  const [searchKeyword, setSearchKeyword] = useState("");
 
   useEffect(() => {
     setMounted(true);
@@ -90,6 +82,8 @@ export default function HomePage() {
           setProducts(data);
         } else if (Array.isArray(data?.items)) {
           setProducts(data.items);
+        } else if (Array.isArray(data?.content)) {
+          setProducts(data.content);
         } else {
           setProducts([]);
         }
@@ -102,32 +96,6 @@ export default function HomePage() {
     };
 
     fetchProducts();
-  }, []);
-
-  useEffect(() => {
-    const fetchLocations = async () => {
-      setLocationsLoading(true);
-      setLocationsError("");
-
-      try {
-        const data = await getLocations();
-
-        if (data && typeof data === "object" && !Array.isArray(data)) {
-          setLocationData(data);
-        } else if (data?.locations && typeof data.locations === "object") {
-          setLocationData(data.locations);
-        } else {
-          setLocationData({});
-        }
-      } catch (error) {
-        setLocationsError(error.message || "지역 정보를 불러오지 못했습니다.");
-        setLocationData({});
-      } finally {
-        setLocationsLoading(false);
-      }
-    };
-
-    fetchLocations();
   }, []);
 
   const handleLoginSuccess = () => {
@@ -153,76 +121,68 @@ export default function HomePage() {
     setIsLoginModalOpen(true);
   };
 
-  const locationPathText = useMemo(() => {
-    if (step === 0) return "시/도를 선택해주세요";
-    if (step === 1) return selectedLocation.city;
-    return `${selectedLocation.city} > ${selectedLocation.district}`;
-  }, [step, selectedLocation]);
+  const normalizedProducts = useMemo(() => {
+  return (products || []).map((item, index) => {
 
-  const locationButtonText = useMemo(() => {
-    if (selectedLocation.district && selectedLocation.dong) {
-      return `${selectedLocation.district} > ${selectedLocation.dong}`;
-    }
-    return "지역 선택";
-  }, [selectedLocation]);
+    const rawThumbnail =
+      item.thumbnailUrl ||
+      item.imageUrl ||
+      item.itemImageUrl ||
+      item.thumbnail ||
+      item.image ||
+      item.images?.[0]?.imageUrl ||
+      item.images?.[0]?.url ||
+      item.imageUrls?.[0] ||
+      "";
 
-  const currentLocationList = useMemo(() => {
-    if (step === 0) return Object.keys(locationData || {});
+    const thumbnailUrl =
+      rawThumbnail && rawThumbnail.startsWith("http")
+        ? rawThumbnail
+        : rawThumbnail
+        ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${rawThumbnail}`
+        : "";
 
-    if (
-      step === 1 &&
-      selectedLocation.city &&
-      locationData[selectedLocation.city]
-    ) {
-      return Object.keys(locationData[selectedLocation.city]);
-    }
+    console.log("이미지 확인", item.title, rawThumbnail, thumbnailUrl);
+    return {
+      raw: item,
+      id: item.itemId ?? item.id ?? index,
+      title: item.title ?? item.name ?? "상품명 없음",
+      price: item.pricePerDay ?? item.price ?? item.dailyPrice ?? 0,
+      meta:
+        item.location ||
+        item.areaName ||
+        item.locationAreaCode ||
+        item.ownerNickname ||
+        "위치 정보 없음",
+      note:
+        item.firstCategory ||
+        item.secondCategory ||
+        (Array.isArray(item.tags) ? item.tags.join(" · ") : item.note) ||
+        "상품 정보",
+      time: item.createdAt || item.timeAgo || item.updatedAt || "",
+      badges: Array.isArray(item.badges)
+        ? item.badges
+        : Array.isArray(item.tags)
+        ? item.tags.slice(0, 3)
+        : [],
+      thumbnailUrl, // ⭐ 여기 들어감
+    };
+  });
+}, [products]);
 
-    if (
-      step === 2 &&
-      selectedLocation.city &&
-      selectedLocation.district &&
-      locationData[selectedLocation.city]?.[selectedLocation.district]
-    ) {
-      return locationData[selectedLocation.city][selectedLocation.district];
-    }
+  const handleSearch = () => {
+    const params = new URLSearchParams();
 
-    return [];
-  }, [step, selectedLocation, locationData]);
-
-  const handleLocationSelect = (item) => {
-    if (step === 0) {
-      setSelectedLocation({ city: item, district: "", dong: "" });
-      setStep(1);
-      return;
-    }
-
-    if (step === 1) {
-      setSelectedLocation((prev) => ({
-        ...prev,
-        district: item,
-        dong: "",
-      }));
-      setStep(2);
-      return;
-    }
-
-    setSelectedLocation((prev) => ({
-      ...prev,
-      dong: item,
-    }));
-    setIsLocationOpen(false);
-    setStep(0);
-  };
-
-  const handleLocationBack = () => {
-    if (step === 2) {
-      setStep(1);
-      return;
+    if (locationKeyword.trim()) {
+      params.set("location", locationKeyword.trim());
     }
 
-    if (step === 1) {
-      setStep(0);
+    if (searchKeyword.trim()) {
+      params.set("keyword", searchKeyword.trim());
     }
+
+    const queryString = params.toString();
+    router.push(queryString ? `/product?${queryString}` : "/product");
   };
 
   const formatPrice = (price) => {
@@ -327,45 +287,19 @@ export default function HomePage() {
             <div className="search-bar-wrap">
               <div className="field-group location-field">
                 <label>지역</label>
-
-                <button
-                  className="select-box"
-                  type="button"
-                  onClick={() => setIsLocationOpen((prev) => !prev)}
-                  disabled={locationsLoading}
-                >
-                  <span>
-                    {locationsLoading ? "지역 불러오는 중..." : locationButtonText}
-                  </span>
-                  <span className="arrow"></span>
-                </button>
-
-                <div
-                  className={`location-dropdown ${
-                    isLocationOpen ? "active" : ""
-                  }`}
-                >
-                  <div className="location-path">{locationPathText}</div>
-
-                  <ul>
-                    {step > 0 && (
-                      <li className="is-back" onClick={handleLocationBack}>
-                        {step === 1 ? "← 시/도 다시 선택" : "← 군/구 다시 선택"}
-                      </li>
-                    )}
-
-                    {currentLocationList.map((item) => (
-                      <li key={item} onClick={() => handleLocationSelect(item)}>
-                        {item}
-                      </li>
-                    ))}
-
-                    {!locationsLoading && currentLocationList.length === 0 && (
-                      <li>지역 데이터가 없습니다.</li>
-                    )}
-
-                    {locationsError && <li>{locationsError}</li>}
-                  </ul>
+                <div className="search-box location-input-box">
+                  <span className="search-icon"></span>
+                  <input
+                    type="text"
+                    value={locationKeyword}
+                    onChange={(e) => setLocationKeyword(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleSearch();
+                      }
+                    }}
+                    placeholder="예: 서울 마포구 합정동"
+                  />
                 </div>
               </div>
 
@@ -375,19 +309,34 @@ export default function HomePage() {
                   <span className="search-icon"></span>
                   <input
                     type="text"
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleSearch();
+                      }
+                    }}
                     placeholder="예: 빔프로젝터, 스위치, 드릴, 텐트..."
                   />
                 </div>
               </div>
 
-              <button className="search-btn" type="button">
+              <button className="search-btn" type="button" onClick={handleSearch}>
                 검색하기
               </button>
             </div>
 
             <div className="categories">
               {CATEGORIES.map((item) => (
-                <button type="button" className="cat-pill" key={item}>
+                <button
+                  type="button"
+                  className="cat-pill"
+                  key={item}
+                  onClick={() => {
+                    setSearchKeyword(item);
+                    router.push(`/product?keyword=${encodeURIComponent(item)}`);
+                  }}
+                >
                   {item}
                 </button>
               ))}
@@ -474,7 +423,7 @@ export default function HomePage() {
             <div className="section-head">
               <div>
                 <h2>오늘의 추천상품</h2>
-                <p>최근 게시글 기준으로, 내 동네에서 인기 있는 물건을 보여드려요</p>
+                <p>지금 올라와 있는 상품을 모두 보여드려요</p>
               </div>
 
               <Link href="/product" className="section-link">
@@ -486,18 +435,27 @@ export default function HomePage() {
               <div className="product-empty">상품을 불러오는 중입니다...</div>
             ) : productsError ? (
               <div className="product-empty">{productsError}</div>
-            ) : products.length === 0 ? (
+            ) : normalizedProducts.length === 0 ? (
               <div className="product-empty">등록된 상품이 없습니다.</div>
             ) : (
               <div className="product-grid">
-                {products.map((item, index) => (
+                {normalizedProducts.map((item) => (
                   <Link
-                    href={`/product/${item.id ?? index}`}
-                    key={item.id ?? `${item.title}-${index}`}
+                    href={`/product/${item.id}`}
+                    key={item.id}
                     className="product-card-link"
                   >
                     <article className="product-card">
-                      <div className="thumb"></div>
+                      <div className="thumb">
+                        {item.thumbnailUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={item.thumbnailUrl}
+                            alt={item.title}
+                            className="thumb-image"
+                          />
+                        ) : null}
+                      </div>
 
                       <div className="product-badges">
                         {(item.badges || []).map((badge) => (
