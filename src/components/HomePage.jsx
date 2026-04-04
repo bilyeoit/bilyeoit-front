@@ -13,15 +13,15 @@ const STATS = [
 ];
 
 const CATEGORIES = [
-  "캠핑/여행",
-  "전자기기",
-  "공구/DIY",
-  "육아",
-  "촬영",
-  "여행/이동",
-  "의상대여",
-  "파티/행사",
-  "기타",
+  { name: "전체보기", id: null },
+  { name: "카메라", id: 1 },
+  { name: "캠핑/야외", id: 4 },
+  { name: "공구/DIY", id: 5 },
+  { name: "디지털/가전", id: 15 },
+  { name: "생활/건강", id: 16 },
+  { name: "가구", id: 17 },
+  { name: "스포츠", id: 18 },
+  { name: "육아", id: 19 },
 ];
 
 const TRUST_ITEMS = [
@@ -122,53 +122,52 @@ export default function HomePage() {
   };
 
   const normalizedProducts = useMemo(() => {
-  return (products || []).map((item, index) => {
+    return (products || []).map((item, index) => {
+      const rawThumbnail =
+        item.thumbnailUrl ||
+        item.imageUrl ||
+        item.itemImageUrl ||
+        item.thumbnail ||
+        item.image ||
+        item.images?.[0]?.imageUrl ||
+        item.images?.[0]?.url ||
+        item.imageUrls?.[0] ||
+        "";
 
-    const rawThumbnail =
-      item.thumbnailUrl ||
-      item.imageUrl ||
-      item.itemImageUrl ||
-      item.thumbnail ||
-      item.image ||
-      item.images?.[0]?.imageUrl ||
-      item.images?.[0]?.url ||
-      item.imageUrls?.[0] ||
-      "";
+      const thumbnailUrl =
+        rawThumbnail && rawThumbnail.startsWith("http")
+          ? rawThumbnail
+          : rawThumbnail
+          ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${rawThumbnail}`
+          : "";
 
-    const thumbnailUrl =
-      rawThumbnail && rawThumbnail.startsWith("http")
-        ? rawThumbnail
-        : rawThumbnail
-        ? `${process.env.NEXT_PUBLIC_API_BASE_URL}${rawThumbnail}`
-        : "";
-
-    console.log("이미지 확인", item.title, rawThumbnail, thumbnailUrl);
-    return {
-      raw: item,
-      id: item.itemId ?? item.id ?? index,
-      title: item.title ?? item.name ?? "상품명 없음",
-      price: item.pricePerDay ?? item.price ?? item.dailyPrice ?? 0,
-      meta:
+      return {
+        raw: item,
+        id: item.itemId ?? item.id ?? index,
+        title: item.title ?? item.name ?? "상품명 없음",
+        price: item.pricePerDay ?? item.price ?? item.dailyPrice ?? 0,
+       meta:
+        item.area_name ||
         item.location ||
         item.areaName ||
         item.locationAreaCode ||
         item.ownerNickname ||
         "위치 정보 없음",
-      note:
-        item.firstCategory ||
-        item.secondCategory ||
-        (Array.isArray(item.tags) ? item.tags.join(" · ") : item.note) ||
-        "상품 정보",
-      time: item.createdAt || item.timeAgo || item.updatedAt || "",
-      badges: Array.isArray(item.badges)
-        ? item.badges
-        : Array.isArray(item.tags)
-        ? item.tags.slice(0, 3)
-        : [],
-      thumbnailUrl, // ⭐ 여기 들어감
-    };
-  });
-}, [products]);
+        note:
+          item.firstCategory ||
+          item.secondCategory ||
+          (Array.isArray(item.tags) ? item.tags.join(" · ") : item.note) ||
+          "상품 정보",
+        time: item.createdAt || item.timeAgo || item.updatedAt || "",
+        badges: Array.isArray(item.badges)
+          ? item.badges
+          : Array.isArray(item.tags)
+          ? item.tags.slice(0, 3)
+          : [],
+        thumbnailUrl,
+      };
+    });
+  }, [products]);
 
   const handleSearch = () => {
     const params = new URLSearchParams();
@@ -183,6 +182,15 @@ export default function HomePage() {
 
     const queryString = params.toString();
     router.push(queryString ? `/product?${queryString}` : "/product");
+  };
+
+  const handleCategoryMove = (category) => {
+    if (category.id === null) {
+      router.push("/product");
+      return;
+    }
+
+    router.push(`/product?categoryId=${category.id}`);
   };
 
   const formatPrice = (price) => {
@@ -331,13 +339,10 @@ export default function HomePage() {
                 <button
                   type="button"
                   className="cat-pill"
-                  key={item}
-                  onClick={() => {
-                    setSearchKeyword(item);
-                    router.push(`/product?keyword=${encodeURIComponent(item)}`);
-                  }}
+                  key={`${item.name}-${item.id ?? "all"}`}
+                  onClick={() => handleCategoryMove(item)}
                 >
-                  {item}
+                  {item.name}
                 </button>
               ))}
             </div>
@@ -426,7 +431,7 @@ export default function HomePage() {
                 <p>지금 올라와 있는 상품을 모두 보여드려요</p>
               </div>
 
-              <Link href="/product" className="section-link">
+              <Link href="/products" className="section-link">
                 최근 게시글 전체보기 <span>→</span>
               </Link>
             </div>
@@ -441,14 +446,13 @@ export default function HomePage() {
               <div className="product-grid">
                 {normalizedProducts.map((item) => (
                   <Link
-                    href={`/product/${item.id}`}
+                    href={`/products/${item.id}`}
                     key={item.id}
                     className="product-card-link"
                   >
                     <article className="product-card">
                       <div className="thumb">
                         {item.thumbnailUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={item.thumbnailUrl}
                             alt={item.title}
@@ -458,8 +462,8 @@ export default function HomePage() {
                       </div>
 
                       <div className="product-badges">
-                        {(item.badges || []).map((badge) => (
-                          <span key={badge}>{badge}</span>
+                        {(item.badges || []).map((badge, index) => (
+                          <span key={`${badge}-${index}`}>{badge}</span>
                         ))}
                       </div>
 
@@ -511,11 +515,13 @@ export default function HomePage() {
         </section>
       </div>
 
-      <LoginModal
-        open={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
-        onLoginSuccess={handleLoginSuccess}
-      />
+      {mounted ? (
+        <LoginModal
+          open={isLoginModalOpen}
+          onClose={() => setIsLoginModalOpen(false)}
+          onLoginSuccess={handleLoginSuccess}
+        />
+      ) : null}
     </>
   );
 }

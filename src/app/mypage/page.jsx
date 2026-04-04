@@ -13,6 +13,63 @@ import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./page.module.css";
 import Link from "next/link";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+
+async function toggleFavorite(itemId) {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("accessToken") ||
+        sessionStorage.getItem("accessToken")
+      : null;
+
+  const response = await fetch(
+    `${API_BASE_URL}/bilyeoit/v1/items/${itemId}/favorite`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    }
+  );
+
+  let data = null;
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+  }
+
+  if (!response.ok) {
+    const error = new Error(data?.message || `요청 실패 (${response.status})`);
+    error.status = response.status;
+    throw error;
+  }
+
+  return data;
+}
+
+function buildImageUrl(item) {
+  const rawThumbnail =
+    item.thumbnailUrl ||
+    item.imageUrl ||
+    item.itemImageUrl ||
+    item.thumbnail ||
+    item.image ||
+    item.images?.[0]?.imageUrl ||
+    item.images?.[0]?.url ||
+    item.imageUrls?.[0] ||
+    "";
+
+  if (!rawThumbnail) return "";
+  if (rawThumbnail.startsWith("http")) return rawThumbnail;
+  return `${API_BASE_URL}${rawThumbnail}`;
+}
+
 export default function MyPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -33,6 +90,7 @@ export default function MyPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [favoriteLoadingId, setFavoriteLoadingId] = useState(null);
 
   const fetchMainInfo = useCallback(async () => {
     try {
@@ -49,18 +107,18 @@ export default function MyPage() {
   }, [fetchMainInfo]);
 
   useEffect(() => {
-  async function fetchReservationCount() {
-    try {
-      const data = await getReservations();
-      setReceivedReservations(data?.receivedRequests || data?.received || []);
-      setSentReservations(data?.sentRequests || data?.sent || []);
-    } catch (e) {
-      console.error("예약 개수 초기 조회 실패", e);
+    async function fetchReservationCount() {
+      try {
+        const data = await getReservations();
+        setReceivedReservations(data?.receivedRequests || data?.received || []);
+        setSentReservations(data?.sentRequests || data?.sent || []);
+      } catch (e) {
+        console.error("예약 개수 초기 조회 실패", e);
+      }
     }
-  }
 
-  fetchReservationCount();
-}, []);
+    fetchReservationCount();
+  }, []);
 
   useEffect(() => {
     if (searchParams.get("updated") === "1") {
@@ -110,7 +168,14 @@ export default function MyPage() {
         if (activeTab === "favorites") {
           const data = await getFavorites();
           console.log("찜목록 응답", data);
-          setFavoriteItems(data?.items || (Array.isArray(data) ? data : []));
+          const nextFavorites = data?.items || (Array.isArray(data) ? data : []);
+          setFavoriteItems(
+            nextFavorites.map((item) => ({
+              ...item,
+              isFavorite: true,
+              favoriteCount: Math.max(1, Number(item?.favoriteCount || 0)),
+            }))
+          );
         }
 
         if (activeTab === "reviews") {
@@ -138,11 +203,60 @@ export default function MyPage() {
     fetchTabData();
   }, [activeTab]);
 
+  const handleToggleFavoriteInFavorites = useCallback(async (itemId) => {
+    const currentItem = favoriteItems.find((item) => item.itemId === itemId);
+    if (!currentItem) return;
+
+    try {
+      setFavoriteLoadingId(itemId);
+
+      setFavoriteItems((prev) => prev.filter((item) => item.itemId !== itemId));
+
+      const result = await toggleFavorite(itemId);
+
+      if (result?.isFavorite === true) {
+        setFavoriteItems((prev) => [currentItem, ...prev]);
+      }
+
+      setMainInfo((prev) =>
+        prev
+          ? {
+              ...prev,
+              favoriteItemCount:
+                result?.isFavorite === true
+                  ? Number(prev.favoriteItemCount || 0)
+                  : Math.max(0, Number(prev.favoriteItemCount || 0) - 1),
+            }
+          : prev
+      );
+    } catch (err) {
+      console.error(err);
+
+      setFavoriteItems((prev) => {
+        const exists = prev.some((item) => item.itemId === currentItem.itemId);
+        if (exists) return prev;
+        return [currentItem, ...prev];
+      });
+
+      if (err?.status === 401) {
+        alert("로그인 후 이용할 수 있어요.");
+      } else {
+        alert(err.message || "찜 해제에 실패했어요.");
+      }
+    } finally {
+      setFavoriteLoadingId(null);
+    }
+  }, [favoriteItems]);
+
   const tabs = useMemo(
     () => [
       { key: "myItems", label: "내 상품", count: `${mainInfo?.myItemCount ?? 0}개` },
       { key: "rentals", label: "대여상품", count: `${mainInfo?.rentingItemCount ?? 0}건` },
-      { key: "reservations", label: "예약상품", count: `${receivedReservations.length + sentReservations.length}건` },
+      {
+        key: "reservations",
+        label: "예약상품",
+        count: `${receivedReservations.length + sentReservations.length}건`,
+      },
       { key: "favorites", label: "찜목록", count: `${mainInfo?.favoriteItemCount ?? 0}개` },
       { key: "reviews", label: "리뷰", count: `${mainInfo?.reviewCount ?? 0}개` },
     ],
@@ -486,31 +600,64 @@ export default function MyPage() {
             <p className={styles.stateText}>찜한 상품이 없습니다.</p>
           ) : (
             <section className={styles.favoriteGrid}>
-              {sortedFavoriteItems.map((item) => (
-                <div className={styles.favoriteCard} key={item.itemId}>
-                  <div className={styles.favoriteThumb}></div>
+              {sortedFavoriteItems.map((item) => {
+                const imageUrl = buildImageUrl(item);
+                const isFavoriteLoading = favoriteLoadingId === item.itemId;
 
-                  <div className={styles.favoriteBody}>
-                    <h3>{item.title || "-"}</h3>
-                    <p className={styles.favoriteMeta}>{item.location || "-"}</p>
-                    <p className={styles.favoritePrice}>
-                      {item.pricePerDay
-                        ? `₩${Number(item.pricePerDay).toLocaleString()} / 하루`
-                        : "-"}
-                    </p>
+                return (
+                  <div className={styles.favoriteCard} key={item.itemId}>
+                    <div className={styles.favoriteThumbWrap}>
+                      <Link href={`/products/${item.itemId}`} className={styles.favoriteLink}>
+                        {imageUrl ? (
+                          <img
+                            src={imageUrl}
+                            alt={item.title || "상품 이미지"}
+                            className={styles.favoriteThumbImage}
+                          />
+                        ) : (
+                          <div className={styles.favoriteThumb}>이미지 준비중</div>
+                        )}
+                      </Link>
 
-                    <div className={styles.favoriteTags}>
-                      {item.depositAmount ? (
-                        <span>보증금 ₩{Number(item.depositAmount).toLocaleString()}</span>
-                      ) : null}
-                      {item.rentalDays ? <span>대여 {item.rentalDays}일</span> : null}
-                      {item.pickupLocation ? <span>{item.pickupLocation}</span> : null}
+                      <button
+                        type="button"
+                        className={`${styles.favoriteBtn} ${styles.favoriteBtnActive}`}
+                        onClick={() => handleToggleFavoriteInFavorites(item.itemId)}
+                        disabled={isFavoriteLoading}
+                        aria-label="찜 해제"
+                      >
+                        <span className={styles.favoriteInner}>
+                          <span className={styles.favoriteIcon}>♥</span>
+                          <span className={styles.favoriteCount}>
+                            {Math.max(1, Number(item.favoriteCount || 0))}
+                          </span>
+                        </span>
+                      </button>
                     </div>
 
-                    <button className={styles.favoriteHeart}>❤</button>
+                    <div className={styles.favoriteBody}>
+                      <Link href={`/products/${item.itemId}`} className={styles.favoriteLink}>
+                        <h3>{item.title || "-"}</h3>
+                      </Link>
+
+                      <p className={styles.favoriteMeta}>{item.location || item.locationAreaCode || "-"}</p>
+                      <p className={styles.favoritePrice}>
+                        {item.pricePerDay
+                          ? `₩${Number(item.pricePerDay).toLocaleString()} / 하루`
+                          : "-"}
+                      </p>
+
+                      <div className={styles.favoriteTags}>
+                        {item.depositAmount ? (
+                          <span>보증금 ₩{Number(item.depositAmount).toLocaleString()}</span>
+                        ) : null}
+                        {item.rentalDays ? <span>대여 {item.rentalDays}일</span> : null}
+                        {item.pickupLocation ? <span>{item.pickupLocation}</span> : null}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </section>
           ))}
 

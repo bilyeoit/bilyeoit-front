@@ -25,6 +25,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .primaryChip {
@@ -227,6 +228,7 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  z-index: 2;
 }
 
 .badge,
@@ -247,6 +249,61 @@
 .badgeSub {
   font-weight: 600;
   color: #607089;
+}
+
+.favoriteBtn {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  min-width: 56px;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid rgba(214, 224, 238, 0.95);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease;
+  z-index: 3;
+}
+
+.favoriteBtn:hover {
+  transform: scale(1.06);
+}
+
+.favoriteBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.favoriteBtnActive {
+  background: #eef4ff;
+  border-color: #c8daf8;
+}
+
+.favoriteInner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.favoriteIcon {
+  font-size: 18px;
+  line-height: 1;
+  color: #264a79;
+}
+
+.favoriteCount {
+  font-size: 12px;
+  font-weight: 700;
+  color: #264a79;
+  line-height: 1;
 }
 
 .cardBody {
@@ -354,6 +411,7 @@
   text-align: center;
   font-size: 15px;
   color: #6c7b90;
+  padding: 18px;
 }
 
 .errorText {
@@ -505,4 +563,81 @@
     align-items: flex-start;
     flex-direction: column;
   }
+}
+
+.createBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 42px;
+  padding: 0 18px;
+  border-radius: 12px;
+  background: #1a2c57;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.createBtn:hover {
+  background: #2456d6;
+  transform: translateY(-1px);
+}
+
+.selectableSuggestion {
+  width: 100%;
+  border: 1px solid #e0e8f4;
+  border-radius: 12px;
+  background: #f8fbff;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 13px;
+  color: #31445f;
+  line-height: 1.5;
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease,
+    transform 0.16s ease;
+}
+
+.selectableSuggestion:hover {
+  background: #f1f7ff;
+  border-color: #c9daf7;
+}
+
+.selectedSuggestion {
+  background: #eaf2ff;
+  border-color: #8eb0f7;
+  color: #173f87;
+}
+
+.aiTagButton {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #edf4ff;
+  color: #224a84;
+  border: 1px solid #d5e3fb;
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.aiTagButton:hover {
+  background: #e4efff;
+}
+
+.aiTagButtonActive {
+  background: #1f4ea5;
+  color: #ffffff;
+  border-color: #1f4ea5;
 }

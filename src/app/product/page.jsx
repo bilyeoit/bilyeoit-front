@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import styles from "./page.module.css";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
@@ -13,10 +15,20 @@ const SORT_OPTIONS = [
 async function request(path, options = {}) {
   const url = `${API_BASE_URL}${path}`;
 
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("accessToken") ||
+        sessionStorage.getItem("accessToken")
+      : null;
+
+  const isFormData =
+    typeof FormData !== "undefined" && options.body instanceof FormData;
+
   const response = await fetch(url, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
     cache: "no-store",
@@ -34,7 +46,9 @@ async function request(path, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(data?.message || `요청 실패 (${response.status})`);
+    const error = new Error(data?.message || `요청 실패 (${response.status})`);
+    error.status = response.status;
+    throw error;
   }
 
   return data;
@@ -51,12 +65,22 @@ async function getSubcategories(categoryId) {
 async function getItems({ categoryId, sort, page, size }) {
   const params = new URLSearchParams();
 
-  if (categoryId) params.set("categoryId", categoryId);
+  if (categoryId) params.set("categoryId", String(categoryId));
   if (sort) params.set("sort", sort);
   params.set("page", String(page));
   params.set("size", String(size));
 
   return request(`/bilyeoit/v1/items?${params.toString()}`);
+}
+
+async function toggleFavorite(itemId) {
+  return request(`/bilyeoit/v1/items/${itemId}/favorite`, {
+    method: "POST",
+  });
+}
+
+async function getLikedItems() {
+  return request("/bilyeoit/v1/mypage/likeitem");
 }
 
 function buildImageUrl(item) {
@@ -72,10 +96,18 @@ function buildImageUrl(item) {
     "";
 
   if (!rawThumbnail) return "";
-
   if (rawThumbnail.startsWith("http")) return rawThumbnail;
-
   return `${API_BASE_URL}${rawThumbnail}`;
+}
+
+function hasAuthToken() {
+  if (typeof window === "undefined") return false;
+
+  const token =
+    localStorage.getItem("accessToken") ||
+    sessionStorage.getItem("accessToken");
+
+  return !!token;
 }
 
 function formatPrice(price) {
@@ -83,13 +115,14 @@ function formatPrice(price) {
   return `₩${Number(price).toLocaleString("ko-KR")}`;
 }
 
-function ProductCard({ item }) {
+function ProductCard({ item, onToggleFavorite, favoriteLoadingId }) {
   const imageUrl = buildImageUrl(item);
+  const isFavoriteLoading = favoriteLoadingId === item.itemId;
 
   return (
     <article className={styles.card}>
-      <a href={`/products/${item.itemId}`} className={styles.cardLink}>
-        <div className={styles.thumbWrap}>
+      <div className={styles.thumbWrap}>
+        <a href={`/product/${item.itemId}`} className={styles.cardLink}>
           {imageUrl ? (
             <img
               src={imageUrl}
@@ -99,23 +132,50 @@ function ProductCard({ item }) {
           ) : (
             <div className={styles.thumbEmpty}>이미지 준비중</div>
           )}
+        </a>
 
-          <div className={styles.badges}>
-            {item.firstCategory ? (
-              <span className={styles.badge}>{item.firstCategory}</span>
-            ) : null}
-            {item.secondCategory ? (
-              <span className={styles.badgeSub}>{item.secondCategory}</span>
-            ) : null}
-          </div>
+        <div className={styles.badges}>
+          {item.firstCategory ? (
+            <span className={styles.badge}>{item.firstCategory}</span>
+          ) : null}
+          {item.secondCategory ? (
+            <span className={styles.badgeSub}>{item.secondCategory}</span>
+          ) : null}
         </div>
 
+        <button
+          type="button"
+          className={`${styles.favoriteBtn} ${
+            item.isFavorite ? styles.favoriteBtnActive : ""
+          }`}
+          onClick={() => onToggleFavorite(item.itemId)}
+          disabled={isFavoriteLoading}
+          aria-label={item.isFavorite ? "찜 해제" : "찜 하기"}
+        >
+          <span className={styles.favoriteInner}>
+            <span className={styles.favoriteIcon}>
+              {item.isFavorite ? "♥" : "♡"}
+            </span>
+            <span className={styles.favoriteCount}>
+              {Number(item.favoriteCount || 0)}
+            </span>
+          </span>
+        </button>
+      </div>
+
+      <a href={`/product/${item.itemId}`} className={styles.cardLink}>
         <div className={styles.cardBody}>
           <h3 className={styles.title}>{item.title || "제목 없음"}</h3>
 
           <p className={styles.meta}>
             @{item.ownerNickname || "알 수 없음"}
-            {item.locationAreaCode ? ` · ${item.locationAreaCode}` : ""}
+            {item.area_name
+              ? ` · ${item.area_name}`
+              : item.areaName
+              ? ` · ${item.areaName}`
+              : item.locationAreaCode
+              ? ` · ${item.locationAreaCode}`
+              : ""}
           </p>
 
           <div className={styles.priceRow}>
@@ -129,7 +189,12 @@ function ProductCard({ item }) {
 
           {Array.isArray(item.tags) && item.tags.length > 0 ? (
             <p className={styles.desc}>
-              “{item.tags.slice(0, 2).join(" · ")}”
+              {item.tags.slice(0, 2).map((tag, index) => (
+                <span key={`${item.itemId}-${tag}-${index}`}>
+                  #{tag}
+                  {index < Math.min(item.tags.length, 2) - 1 ? " " : ""}
+                </span>
+              ))}
             </p>
           ) : (
             <p className={styles.desc}>대여 가능한 상품이에요.</p>
@@ -198,10 +263,15 @@ function Pagination({ currentPage, totalPages, onChange }) {
 }
 
 export default function ProductsPage() {
+  const searchParams = useSearchParams();
+
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
 
-  const [selectedMainId, setSelectedMainId] = useState(null);
+  const [selectedMainId, setSelectedMainId] = useState(() => {
+  const categoryId = searchParams.get("categoryId");
+    return categoryId ? Number(categoryId) : null;
+  });
   const [selectedSubId, setSelectedSubId] = useState(null);
   const [sort, setSort] = useState("latest");
 
@@ -215,6 +285,7 @@ export default function ProductsPage() {
 
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [loadingItems, setLoadingItems] = useState(true);
+  const [favoriteLoadingId, setFavoriteLoadingId] = useState(null);
   const [error, setError] = useState("");
 
   const activeCategoryId = selectedSubId || selectedMainId;
@@ -223,12 +294,12 @@ export default function ProductsPage() {
     try {
       setLoadingCategories(true);
       const data = await getCategories();
+
       const mainCategories = Array.isArray(data)
         ? data.filter((item) => item.categoryType === "FIRST")
         : [];
 
       setCategories(mainCategories);
-
     } catch (err) {
       console.error(err);
       setError("카테고리를 불러오지 못했어요.");
@@ -253,6 +324,7 @@ export default function ProductsPage() {
   }, []);
 
   const fetchItems = useCallback(async () => {
+
     try {
       setLoadingItems(true);
       setError("");
@@ -264,7 +336,35 @@ export default function ProductsPage() {
         size: pageInfo.size,
       });
 
-      setItems(Array.isArray(data?.content) ? data.content : []);
+      let nextItems = Array.isArray(data?.content) ? data.content : [];
+
+      if (hasAuthToken()) {
+        try {
+          const likedData = await getLikedItems();
+
+          const likedItemsArray = Array.isArray(likedData)
+            ? likedData
+            : Array.isArray(likedData?.items)
+            ? likedData.items
+            : [];
+
+          const likedIdSet = new Set(
+            likedItemsArray
+              .map((item) => Number(item?.itemId))
+              .filter((id) => Number.isFinite(id))
+          );
+
+          nextItems = nextItems.map((item) => ({
+            ...item,
+            isFavorite: likedIdSet.has(Number(item.itemId)),
+          }));
+        } catch (likedErr) {
+          console.error("찜목록 동기화 실패:", likedErr);
+        }
+        
+      }
+
+      setItems(nextItems);
       setPageInfo((prev) => ({
         ...prev,
         page: data?.page ?? 0,
@@ -281,14 +381,102 @@ export default function ProductsPage() {
     }
   }, [activeCategoryId, sort, pageInfo.page, pageInfo.size]);
 
+  const handleToggleFavorite = useCallback(
+    async (itemId) => {
+      const currentItem = items.find((item) => item.itemId === itemId);
+      if (!currentItem) return;
+
+      const prevIsFavorite = !!currentItem.isFavorite;
+      const prevFavoriteCount = Number(currentItem.favoriteCount || 0);
+
+      try {
+        setFavoriteLoadingId(itemId);
+
+        setItems((prev) =>
+          prev.map((item) =>
+            item.itemId === itemId
+              ? {
+                  ...item,
+                  isFavorite: !prevIsFavorite,
+                  favoriteCount: prevIsFavorite
+                    ? Math.max(0, prevFavoriteCount - 1)
+                    : prevFavoriteCount + 1,
+                }
+              : item
+          )
+        );
+
+        const result = await toggleFavorite(itemId);
+
+        setItems((prev) =>
+          prev.map((item) =>
+            item.itemId === itemId
+              ? {
+                  ...item,
+                  isFavorite:
+                    typeof result?.isFavorite === "boolean"
+                      ? result.isFavorite
+                      : !prevIsFavorite,
+                  favoriteCount:
+                    typeof result?.isFavorite === "boolean"
+                      ? result.isFavorite
+                        ? prevIsFavorite
+                          ? prevFavoriteCount
+                          : prevFavoriteCount + 1
+                        : prevIsFavorite
+                        ? Math.max(0, prevFavoriteCount - 1)
+                        : prevFavoriteCount
+                      : item.favoriteCount,
+                }
+              : item
+          )
+        );
+      } catch (err) {
+        console.error(err);
+
+        setItems((prev) =>
+          prev.map((item) =>
+            item.itemId === itemId
+              ? {
+                  ...item,
+                  isFavorite: prevIsFavorite,
+                  favoriteCount: prevFavoriteCount,
+                }
+              : item
+          )
+        );
+
+        if (err?.status === 401) {
+          alert("로그인 후 찜할 수 있어요.");
+        } else {
+          alert(err.message || "찜 처리에 실패했어요.");
+        }
+      } finally {
+        setFavoriteLoadingId(null);
+      }
+    },
+    [items]
+  );
+
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
 
   useEffect(() => {
-    fetchSubcategories(selectedMainId);
+    const categoryId = searchParams.get("categoryId");
+
+    if (categoryId) {
+      setSelectedMainId(Number(categoryId));
+    } else {
+      setSelectedMainId(null);
+    }
+
     setSelectedSubId(null);
     setPageInfo((prev) => ({ ...prev, page: 0 }));
+  }, [searchParams]);
+
+  useEffect(() => {
+    fetchSubcategories(selectedMainId);
   }, [selectedMainId, fetchSubcategories]);
 
   useEffect(() => {
@@ -310,9 +498,12 @@ export default function ProductsPage() {
               </button>
 
               <div className={styles.selectLike}>
-                <span>{currentMainCategory?.name || "카테고리"}</span>
+                <span>{currentMainCategory?.name || "전체보기"}</span>
               </div>
             </div>
+            <Link href="/product/create" className={styles.createBtn}>
+              내 상품 등록
+            </Link>
           </div>
 
           <div className={styles.categoryBoard}>
@@ -321,40 +512,39 @@ export default function ProductsPage() {
             ) : (
               <>
                 <div className={styles.mainCategoryRow}>
-  {/* 전체보기 */}
-  <button
-    type="button"
-    className={`${styles.categoryButton} ${
-      selectedMainId === null ? styles.categoryButtonActive : ""
-    }`}
-    onClick={() => {
-      setSelectedMainId(null);
-      setSelectedSubId(null);
-      setPageInfo((prev) => ({ ...prev, page: 0 }));
-    }}
-  >
-    <span>전체보기</span>
-  </button>
+                  <button
+                    type="button"
+                    className={`${styles.categoryButton} ${
+                      selectedMainId === null ? styles.categoryButtonActive : ""
+                    }`}
+                    onClick={() => {
+                      setSelectedMainId(null);
+                      setSelectedSubId(null);
+                      setPageInfo((prev) => ({ ...prev, page: 0 }));
+                    }}
+                  >
+                    <span>전체보기</span>
+                  </button>
 
-  {/* 카테고리 */}
-  {categories.map((category) => (
-    <button
-      key={category.categoryId}
-      type="button"
-      className={`${styles.categoryButton} ${
-        selectedMainId === category.categoryId
-          ? styles.categoryButtonActive
-          : ""
-      }`}
-      onClick={() => {
-        setSelectedMainId(category.categoryId);
-        setPageInfo((prev) => ({ ...prev, page: 0 }));
-      }}
-    >
-      <span>{category.name}</span>
-    </button>
-  ))}
-</div>
+                  {categories.map((category) => (
+                    <button
+                      key={category.categoryId}
+                      type="button"
+                      className={`${styles.categoryButton} ${
+                        selectedMainId === category.categoryId
+                          ? styles.categoryButtonActive
+                          : ""
+                      }`}
+                      onClick={() => {
+                        setSelectedMainId(category.categoryId);
+                        setSelectedSubId(null);
+                        setPageInfo((prev) => ({ ...prev, page: 0 }));
+                      }}
+                    >
+                      <span>{category.name}</span>
+                    </button>
+                  ))}
+                </div>
 
                 {subcategories.length > 0 ? (
                   <div className={styles.subCategoryRow}>
@@ -399,7 +589,7 @@ export default function ProductsPage() {
           <div className={styles.sectionHead}>
             <div>
               <h2 className={styles.sectionTitle}>
-                {currentMainCategory?.name || "상품 목록"}
+                {currentMainCategory?.name || "전체보기"}
               </h2>
               <p className={styles.sectionDesc}>
                 최근 게시글 기준으로, 내 동네에서 인기 있는 물건을 보여드려요
@@ -449,7 +639,12 @@ export default function ProductsPage() {
             <>
               <div className={styles.grid}>
                 {items.map((item) => (
-                  <ProductCard key={item.itemId} item={item} />
+                  <ProductCard
+                    key={item.itemId}
+                    item={item}
+                    onToggleFavorite={handleToggleFavorite}
+                    favoriteLoadingId={favoriteLoadingId}
+                  />
                 ))}
               </div>
 
