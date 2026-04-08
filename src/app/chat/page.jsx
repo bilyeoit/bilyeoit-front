@@ -441,11 +441,19 @@ export default function ChatPage() {
 
     const socket = createChatSocket({
       roomId: selectedRoomId,
-      onMessage: (payload) => {
+      onMessage: async (payload) => {
+        if (payload?.messageType === "PAYMENT") {
+          try {
+            const msgData = await getChatMessages(selectedRoomId);
+            setMessages(Array.isArray(msgData?.messages) ? msgData.messages : []);
+          } catch (e) {
+            console.error(e);
+          }
+          return;
+        }
+
         setMessages((prev) => {
-          const exists = prev.some(
-            (msg) => msg.messageId === payload.messageId
-          );
+          const exists = prev.some((msg) => msg.messageId === payload.messageId);
           if (exists) return prev;
           return [...prev, payload];
         });
@@ -601,7 +609,11 @@ export default function ChatPage() {
       Number(previous?.senderId) !== Number(message?.senderId));
 
   if (message?.messageType === "PAYMENT") {
+  console.log("PAYMENT raw message:", message);
+
   const cardData = buildPaymentCardData(message, selectedRoom?.orderStatus);
+  console.log("PAYMENT cardData:", cardData);
+
   const summaryState = paymentSummaryMap[cardData.orderId];
 
   const mergedCardData = {
