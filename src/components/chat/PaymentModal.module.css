@@ -119,6 +119,12 @@
   border-radius: 20px;
   background: #f4f7fb;
 }
+.thumb img {
+ width: 100%;
+ max-height: 300px;
+ vertical-align: top;
+ overflow: hidden;
+}
 
 .productText {
   margin-top: 16px;

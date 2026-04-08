@@ -467,7 +467,7 @@
   padding: 20px 28px;
   box-sizing: border-box;
   display: grid;
-  grid-template-columns: 240px 1fr 210px 142px;
+  grid-template-columns: 240px 1fr 142px 210px;
   align-items: center;
   column-gap: 26px;
 }
