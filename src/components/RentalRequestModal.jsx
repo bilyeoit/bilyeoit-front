@@ -125,8 +125,6 @@ export default function RentalRequestModal({
     product?.ownerNickname ||
     product?.nickname ||
     "owner";
-    console.log("RentalRequestModal product:", product);
-    console.log("RentalRequestModal product.pricePerDay:", product?.pricePerDay);
 
   if (!open) return null;
 
@@ -228,12 +226,53 @@ export default function RentalRequestModal({
       const room = await findOrCreateRoom();
       const roomId = room?.roomId || room?.id;
 
-     await sendChatMessage({
-        roomId,
-        messageType: "PAYMENT",
-        message: "대여 요청이 수락되었어요. 결제를 진행해주세요.",
-        imageUrl: null,
-        });
+    const startDate = form.startDate || "";
+const endDate = form.endDate || "";
+
+const start = startDate ? new Date(startDate) : null;
+const end = endDate ? new Date(endDate) : null;
+
+const diffTime =
+  start && end ? end.getTime() - start.getTime() : 0;
+
+const rentalDays =
+  diffTime > 0
+    ? Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    : 0;
+
+const pricePerDay = Number(product?.pricePerDay || 0);
+const depositAmount = Number(product?.depositAmount || 0);
+const rentalAmount = pricePerDay * rentalDays;
+
+await sendChatMessage({
+  roomId,
+  messageType: "PAYMENT",
+  message: "대여 요청이 수락되었어요. 결제를 진행해주세요.",
+  imageUrl: null,
+  orderId,
+  startDate,
+  endDate,
+  pricePerDay,
+  rentalAmount,
+  depositAmount,
+  itemTitle: product?.title || "상품명",
+  thumbnailUrl: thumbnailUrl || "",
+  status: "ACCEPTED",
+  payload: {
+    orderId,
+    itemTitle: product?.title || "상품명",
+    thumbnailUrl: thumbnailUrl || "",
+    startDate,
+    endDate,
+    rentalStartDate: startDate,
+    rentalEndDate: endDate,
+    pricePerDay,
+    rentalAmount,
+    totalRentalAmount: rentalAmount,
+    depositAmount,
+    status: "ACCEPTED",
+  },
+});
 
       alert("대여 요청을 수락했어요. 현재 상태는 결제 대기중입니다.");
       onClose();
@@ -305,7 +344,7 @@ export default function RentalRequestModal({
 
           <div className={styles.itemPrice}>
             <span className={styles.itemPriceValue}>
-              ₩{formatPrice(product?.pricePerDay)}
+            ₩{formatPrice(displayPricePerDay)}
             </span>
             <span className={styles.itemPriceUnit}> / 하루</span>
           </div>
