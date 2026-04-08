@@ -95,41 +95,93 @@ function isMineMessage(message, myUserId) {
 function buildPaymentCardData(message, fallbackOrderStatus = "") {
   const payload = message?.payload || {};
 
+  // 날짜 추출
+  const startDate =
+    message?.startDate ||
+    payload?.startDate ||
+    payload?.rentalStartDate ||
+    null;
+
+  const endDate =
+    message?.endDate ||
+    payload?.endDate ||
+    payload?.rentalEndDate ||
+    null;
+
+  // 날짜 포맷 (2026.04.08.)
+  function formatDateText(date) {
+    if (!date) return "-";
+    try {
+      return date.replaceAll("-", ".") + ".";
+    } catch {
+      return "-";
+    }
+  }
+
+  // 대여일수 계산
+  function calcDays(start, end) {
+    if (!start || !end) return 0;
+
+    const s = new Date(start);
+    const e = new Date(end);
+
+    if (isNaN(s.getTime()) || isNaN(e.getTime())) return 0;
+
+    const diff = e - s;
+    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+
+    return days > 0 ? days : 0;
+  }
+
+  const days = calcDays(startDate, endDate);
+
+  // 가격 계산
+  const pricePerDay =
+    payload?.pricePerDay ||
+    message?.pricePerDay ||
+    0;
+
+  const rentalAmount =
+    message?.rentalAmount ||
+    payload?.rentalAmount ||
+    payload?.totalRentalAmount ||
+    payload?.pricePerDayTotal ||
+    (pricePerDay * days) ||
+    0;
+
+  const depositAmount =
+    message?.depositAmount ||
+    payload?.depositAmount ||
+    0;
+
   return {
     orderId: message?.orderId || payload?.orderId || null,
+
     itemTitle:
       message?.itemTitle ||
       message?.title ||
       payload?.itemTitle ||
       payload?.title ||
       "상품명",
+
     thumbnailUrl:
       message?.thumbnailUrl ||
       message?.imageUrl ||
       payload?.thumbnailUrl ||
       payload?.imageUrl ||
       "",
-    startDate:
-      message?.startDate ||
-      payload?.startDate ||
-      payload?.rentalStartDate ||
-      "-",
-    endDate:
-      message?.endDate ||
-      payload?.endDate ||
-      payload?.rentalEndDate ||
-      "-",
-    rentalAmount:
-      message?.rentalAmount ||
-      payload?.rentalAmount ||
-      payload?.totalRentalAmount ||
-      payload?.pricePerDayTotal ||
-      payload?.pricePerDay ||
-      0,
-    depositAmount:
-      message?.depositAmount ||
-      payload?.depositAmount ||
-      0,
+
+    // 기존 값 유지
+    startDate: startDate || "-",
+    endDate: endDate || "-",
+
+    // 🔥 추가 (PaymentSummaryCard에서 쓰는 핵심)
+    pickupText: formatDateText(startDate),
+    returnText: formatDateText(endDate),
+
+    rentalAmount,
+    depositAmount,
+
     status:
       message?.status ||
       payload?.status ||
