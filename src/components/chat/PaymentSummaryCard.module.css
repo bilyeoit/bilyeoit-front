@@ -1,0 +1,74 @@
+.card {
+  width: 100%;
+  border: 1px solid #dde4ef;
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 18px 20px;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 1fr 124px;
+  gap: 20px;
+  align-items: center;
+}
+
+.left {
+  min-width: 0;
+}
+
+.title {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #1c2b44;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lines p {
+  margin: 0;
+  font-size: 13px;
+  color: #435774;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+.lines strong {
+  color: #1b2d49;
+  font-weight: 800;
+}
+
+.right {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.statusBtn,
+.payBtn {
+  width: 124px;
+  height: 38px;
+  border: 0;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.statusBtn {
+  background: #0f1f3a;
+  color: #ffffff;
+}
+
+.payBtn {
+  background: #0f1f3a;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.payBtn:disabled {
+  opacity: 0.75;
+  cursor: default;
+}

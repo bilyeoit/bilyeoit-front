@@ -1,13 +1,18 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export async function apiRequest(url, options = {}) {
-  const token = localStorage.getItem("accessToken");
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("accessToken")
+      : null;
 
+      console.log("API_BASE_URL:", API_BASE_URL);
+console.log("요청 URL:", `${API_BASE_URL}${url}`);
   const response = await fetch(`${API_BASE_URL}${url}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
   });

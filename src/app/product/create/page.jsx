@@ -404,6 +404,7 @@ export default function ProductCreatePage() {
   const validateForm = () => {
     if (!form.title.trim()) return "상품명을 입력해주세요.";
     if (!form.firstCategoryId) return "카테고리를 선택해주세요.";
+    if (!form.secondCategoryId) return "중분류 카테고리를 선택해주세요.";
     if (!form.description.trim()) return "설명을 입력해주세요.";
     if (!form.pricePerDay || Number(form.pricePerDay) <= 0)
       return "대여가를 입력해주세요.";
@@ -433,8 +434,8 @@ export default function ProductCreatePage() {
         description: form.description.trim(),
         pricePerDay: roundToHundreds(Number(form.pricePerDay)),
         depositAmount: Number(form.depositAmount),
-        firstCategory: selectedFirstCategory?.name || "",
-        secondCategory: selectedSecondCategory?.name || "",
+        firstCategoryId: Number(form.firstCategoryId),
+        secondCategoryId: Number(form.secondCategoryId),
         tags: parseTags(form.tagsInput),
         imageUrl: ai.imageUrl,
         rentalDays: Number(form.rentalDays),
@@ -1022,23 +1023,6 @@ export default function ProductCreatePage() {
                 </div>
               </div>
 
-              <div className={styles.formRow}>
-                <label>픽업 동네</label>
-                <div className={styles.inlineField}>
-                  <input
-                    className={styles.input}
-                    value={form.pickupArea}
-                    onChange={handleChange("pickupArea")}
-                    placeholder="예: 김포 장기동"
-                  />
-                  <button type="button" className={styles.secondaryBtn}>
-                    직접 입력
-                  </button>
-                </div>
-                <p className={styles.helperText}>
-                  현재 시안엔 있지만, 등록 API 필드에는 아직 명시되지 않은 항목이에요.
-                </p>
-              </div>
             </div>
 
             {(message || error) && (

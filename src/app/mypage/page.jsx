@@ -4,14 +4,16 @@ import {
   getMyPageMainInfo,
   getMyItems,
   getRentals,
-  getReservations,
   getFavorites,
   getReviews,
+  getReservationDashboard,
 } from "@/services/mypage";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./page.module.css";
 import Link from "next/link";
+import RentalRequestModal from "@/components/RentalRequestModal";
+import PaymentModal from "@/components/chat/PaymentModal";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
@@ -55,19 +57,102 @@ async function toggleFavorite(itemId) {
 
 function buildImageUrl(item) {
   const rawThumbnail =
-    item.thumbnailUrl ||
-    item.imageUrl ||
-    item.itemImageUrl ||
-    item.thumbnail ||
-    item.image ||
-    item.images?.[0]?.imageUrl ||
-    item.images?.[0]?.url ||
-    item.imageUrls?.[0] ||
+    item?.thumbnailUrl ||
+    item?.imageUrl ||
+    item?.itemImageUrl ||
+    item?.thumbnail ||
+    item?.image ||
+    item?.images?.[0]?.imageUrl ||
+    item?.images?.[0]?.url ||
+    item?.imageUrls?.[0] ||
     "";
 
   if (!rawThumbnail) return "";
   if (rawThumbnail.startsWith("http")) return rawThumbnail;
   return `${API_BASE_URL}${rawThumbnail}`;
+}
+
+function getSentStatusLabel(status) {
+  switch (status) {
+    case "PENDING":
+      return "수락 대기중";
+    case "ACCEPTED":
+      return "결제 대기중";
+    case "PAID":
+    case "IN_PROGRESS":
+      return "진행중";
+    case "COMPLETED":
+      return "대여 완료";
+    case "REJECTED":
+      return "거절됨";
+    case "CANCELLED":
+      return "취소됨";
+    default:
+      return status || "-";
+  }
+}
+
+function getReceivedStatusLabel(status) {
+  switch (status) {
+    case "PENDING":
+      return "대여 수락";
+    case "ACCEPTED":
+      return "결제 대기중";
+    case "PAID":
+    case "IN_PROGRESS":
+      return "진행중";
+    case "COMPLETED":
+      return "대여 완료";
+    case "REJECTED":
+      return "거절됨";
+    case "CANCELLED":
+      return "취소됨";
+    default:
+      return status || "-";
+  }
+}
+
+function isPending(status) {
+  return status === "PENDING";
+}
+
+function isVisibleReservationStatus(status) {
+  return status === "PENDING" || status === "ACCEPTED";
+}
+
+function isRentingStatus(status) {
+  return status === "PAID" || status === "IN_PROGRESS";
+}
+
+function getReservationImage(item) {
+  return (
+    item?.thumbnailUrl ||
+    item?.thumbnail_url ||
+    item?.imageUrl ||
+    item?.image_url ||
+    item?.itemImageUrl ||
+    item?.item_image_url ||
+    item?.images?.[0]?.imageUrl ||
+    ""
+  );
+}
+
+function getTargetNickname(item) {
+  return item?.targetNickname || item?.nickname || "사용자";
+}
+
+function getTargetProfileImage(item) {
+  return (
+    item?.targetProfileImage ||
+    item?.targetProfileImageUrl ||
+    item?.profileImageUrl ||
+    item?.profile_image_url ||
+    ""
+  );
+}
+
+function getItemProgressStatus(item) {
+  return item?.orderStatus || item?.status || item?.rentalStatus || "";
 }
 
 export default function MyPage() {
@@ -92,13 +177,78 @@ export default function MyPage() {
   const [error, setError] = useState("");
   const [favoriteLoadingId, setFavoriteLoadingId] = useState(null);
 
+  const [acceptModalOpen, setAcceptModalOpen] = useState(false);
+  const [selectedReservation, setSelectedReservation] = useState(null);
+
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedPaymentReservation, setSelectedPaymentReservation] = useState(null);
+
   const fetchMainInfo = useCallback(async () => {
     try {
       const data = await getMyPageMainInfo();
-      console.log("메인정보 응답", data);
       setMainInfo(data);
     } catch (e) {
       console.error(e);
+    }
+  }, []);
+
+  const fetchReservationDashboard = useCallback(async () => {
+    try {
+      const data = await getReservationDashboard();
+      setReceivedReservations(data?.receivedRequests || []);
+      setSentReservations(data?.sentRequests || []);
+    } catch (e) {
+      console.error("예약 대시보드 조회 실패", e);
+    }
+  }, []);
+
+  const refetchAll = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const [mainRes, itemsRes, rentalsRes, reservationRes, favoritesRes, reviewsRes] =
+        await Promise.all([
+          getMyPageMainInfo(),
+          getMyItems(),
+          getRentals(),
+          getReservationDashboard(),
+          getFavorites(),
+          getReviews(),
+        ]);
+
+      setMainInfo(mainRes || null);
+      setMyItems(Array.isArray(itemsRes) ? itemsRes : itemsRes?.items || []);
+      setRentalItems(Array.isArray(rentalsRes) ? rentalsRes : rentalsRes?.items || []);
+      setReceivedReservations(reservationRes?.receivedRequests || []);
+      setSentReservations(reservationRes?.sentRequests || []);
+
+      const nextFavorites =
+        favoritesRes?.items || (Array.isArray(favoritesRes) ? favoritesRes : []);
+
+      setFavoriteItems(
+        nextFavorites.map((item) => ({
+          ...item,
+          isFavorite: true,
+          favoriteCount: Math.max(1, Number(item?.favoriteCount || 0)),
+        }))
+      );
+
+      setAvgRating(reviewsRes?.avgRating || 0);
+      setReviewItems(
+        Array.isArray(reviewsRes?.reviews)
+          ? reviewsRes.reviews
+          : Array.isArray(reviewsRes?.items)
+          ? reviewsRes.items
+          : Array.isArray(reviewsRes)
+          ? reviewsRes
+          : []
+      );
+    } catch (e) {
+      console.error(e);
+      setError(e.message || "데이터를 불러오지 못했어요.");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -107,25 +257,27 @@ export default function MyPage() {
   }, [fetchMainInfo]);
 
   useEffect(() => {
-    async function fetchReservationCount() {
-      try {
-        const data = await getReservations();
-        setReceivedReservations(data?.receivedRequests || data?.received || []);
-        setSentReservations(data?.sentRequests || data?.sent || []);
-      } catch (e) {
-        console.error("예약 개수 초기 조회 실패", e);
-      }
-    }
-
-    fetchReservationCount();
-  }, []);
+    fetchReservationDashboard();
+  }, [fetchReservationDashboard]);
 
   useEffect(() => {
     if (searchParams.get("updated") === "1") {
-      fetchMainInfo();
+      refetchAll();
       router.replace("/mypage");
     }
-  }, [searchParams, fetchMainInfo, router]);
+  }, [searchParams, refetchAll, router]);
+
+  useEffect(() => {
+    function handleRefresh() {
+      refetchAll();
+    }
+
+    window.addEventListener("RENT_STATUS_CHANGED", handleRefresh);
+
+    return () => {
+      window.removeEventListener("RENT_STATUS_CHANGED", handleRefresh);
+    };
+  }, [refetchAll]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -148,26 +300,22 @@ export default function MyPage() {
       try {
         if (activeTab === "myItems") {
           const data = await getMyItems();
-          console.log("내상품 응답", data);
           setMyItems(Array.isArray(data) ? data : data?.items || []);
         }
 
         if (activeTab === "rentals") {
           const data = await getRentals();
-          console.log("대여상품 응답", data);
           setRentalItems(Array.isArray(data) ? data : data?.items || []);
         }
 
         if (activeTab === "reservations") {
-          const data = await getReservations();
-          console.log("예약상품 응답", data);
-          setReceivedReservations(data?.receivedRequests || data?.received || []);
-          setSentReservations(data?.sentRequests || data?.sent || []);
+          const data = await getReservationDashboard();
+          setReceivedReservations(data?.receivedRequests || []);
+          setSentReservations(data?.sentRequests || []);
         }
 
         if (activeTab === "favorites") {
           const data = await getFavorites();
-          console.log("찜목록 응답", data);
           const nextFavorites = data?.items || (Array.isArray(data) ? data : []);
           setFavoriteItems(
             nextFavorites.map((item) => ({
@@ -180,7 +328,6 @@ export default function MyPage() {
 
         if (activeTab === "reviews") {
           const data = await getReviews();
-          console.log("리뷰 응답", data);
           setAvgRating(data?.avgRating || 0);
           setReviewItems(
             Array.isArray(data?.reviews)
@@ -203,64 +350,122 @@ export default function MyPage() {
     fetchTabData();
   }, [activeTab]);
 
-  const handleToggleFavoriteInFavorites = useCallback(async (itemId) => {
-    const currentItem = favoriteItems.find((item) => item.itemId === itemId);
-    if (!currentItem) return;
+  const handleToggleFavoriteInFavorites = useCallback(
+    async (itemId) => {
+      const currentItem = favoriteItems.find((item) => item.itemId === itemId);
+      if (!currentItem) return;
 
-    try {
-      setFavoriteLoadingId(itemId);
+      try {
+        setFavoriteLoadingId(itemId);
 
-      setFavoriteItems((prev) => prev.filter((item) => item.itemId !== itemId));
+        setFavoriteItems((prev) => prev.filter((item) => item.itemId !== itemId));
 
-      const result = await toggleFavorite(itemId);
+        const result = await toggleFavorite(itemId);
 
-      if (result?.isFavorite === true) {
-        setFavoriteItems((prev) => [currentItem, ...prev]);
+        if (result?.isFavorite === true) {
+          setFavoriteItems((prev) => [currentItem, ...prev]);
+        }
+
+        setMainInfo((prev) =>
+          prev
+            ? {
+                ...prev,
+                favoriteItemCount:
+                  result?.isFavorite === true
+                    ? Number(prev.favoriteItemCount || 0)
+                    : Math.max(0, Number(prev.favoriteItemCount || 0) - 1),
+              }
+            : prev
+        );
+      } catch (err) {
+        console.error(err);
+
+        setFavoriteItems((prev) => {
+          const exists = prev.some((item) => item.itemId === currentItem.itemId);
+          if (exists) return prev;
+          return [currentItem, ...prev];
+        });
+
+        if (err?.status === 401) {
+          alert("로그인 후 이용할 수 있어요.");
+        } else {
+          alert(err.message || "찜 해제에 실패했어요.");
+        }
+      } finally {
+        setFavoriteLoadingId(null);
       }
+    },
+    [favoriteItems]
+  );
 
-      setMainInfo((prev) =>
-        prev
-          ? {
-              ...prev,
-              favoriteItemCount:
-                result?.isFavorite === true
-                  ? Number(prev.favoriteItemCount || 0)
-                  : Math.max(0, Number(prev.favoriteItemCount || 0) - 1),
-            }
-          : prev
-      );
-    } catch (err) {
-      console.error(err);
+  const handleOpenAcceptModal = useCallback((reservation) => {
+    setSelectedReservation(reservation);
+    setAcceptModalOpen(true);
+  }, []);
 
-      setFavoriteItems((prev) => {
-        const exists = prev.some((item) => item.itemId === currentItem.itemId);
-        if (exists) return prev;
-        return [currentItem, ...prev];
-      });
+  const handleCloseAcceptModal = useCallback(() => {
+    setAcceptModalOpen(false);
+    setSelectedReservation(null);
+  }, []);
 
-      if (err?.status === 401) {
-        alert("로그인 후 이용할 수 있어요.");
-      } else {
-        alert(err.message || "찜 해제에 실패했어요.");
-      }
-    } finally {
-      setFavoriteLoadingId(null);
-    }
-  }, [favoriteItems]);
+  const handleOpenPaymentModal = useCallback((reservation) => {
+    setSelectedPaymentReservation(reservation);
+    setPaymentModalOpen(true);
+  }, []);
+
+  const handleClosePaymentModal = useCallback(() => {
+    setPaymentModalOpen(false);
+    setSelectedPaymentReservation(null);
+  }, []);
+
+  const handlePaymentCompleted = useCallback(async () => {
+    handleClosePaymentModal();
+    await refetchAll();
+    setActiveTab("rentals");
+    window.dispatchEvent(new Event("RENT_STATUS_CHANGED"));
+  }, [handleClosePaymentModal, refetchAll]);
+
+  const visibleReceivedReservations = useMemo(
+    () => receivedReservations.filter((item) => isVisibleReservationStatus(item?.status)),
+    [receivedReservations]
+  );
+
+  const visibleSentReservations = useMemo(
+    () => sentReservations.filter((item) => isVisibleReservationStatus(item?.status)),
+    [sentReservations]
+  );
+
+  const visibleRentalItems = useMemo(
+    () =>
+      rentalItems.filter((item) =>
+        isRentingStatus(item?.status || item?.rentalStatus || item?.orderStatus)
+      ),
+    [rentalItems]
+  );
 
   const tabs = useMemo(
     () => [
-      { key: "myItems", label: "내 상품", count: `${mainInfo?.myItemCount ?? 0}개` },
-      { key: "rentals", label: "대여상품", count: `${mainInfo?.rentingItemCount ?? 0}건` },
+      { key: "myItems", label: "내 상품", count: `${mainInfo?.myItemCount ?? myItems.length}개` },
+      {
+        key: "rentals",
+        label: "대여상품",
+        count: `${visibleRentalItems.length}건`,
+      },
       {
         key: "reservations",
         label: "예약상품",
-        count: `${receivedReservations.length + sentReservations.length}건`,
+        count: `${visibleReceivedReservations.length + visibleSentReservations.length}건`,
       },
       { key: "favorites", label: "찜목록", count: `${mainInfo?.favoriteItemCount ?? 0}개` },
       { key: "reviews", label: "리뷰", count: `${mainInfo?.reviewCount ?? 0}개` },
     ],
-    [mainInfo, receivedReservations.length, sentReservations.length]
+    [
+      mainInfo,
+      myItems.length,
+      visibleRentalItems.length,
+      visibleReceivedReservations.length,
+      visibleSentReservations.length,
+    ]
   );
 
   const sortedMyItems = useMemo(() => {
@@ -268,29 +473,26 @@ export default function MyPage() {
     return copied.sort((a, b) => {
       const aTime = new Date(a?.createdAt || 0).getTime();
       const bTime = new Date(b?.createdAt || 0).getTime();
-
       if (sortType === "latest") return bTime - aTime;
       return aTime - bTime;
     });
   }, [myItems, sortType]);
 
   const sortedRentalItems = useMemo(() => {
-    const copied = [...rentalItems];
+    const copied = [...visibleRentalItems];
     return copied.sort((a, b) => {
       const aTime = new Date(a?.createdAt || 0).getTime();
       const bTime = new Date(b?.createdAt || 0).getTime();
-
       if (sortType === "latest") return bTime - aTime;
       return aTime - bTime;
     });
-  }, [rentalItems, sortType]);
+  }, [visibleRentalItems, sortType]);
 
   const sortedFavoriteItems = useMemo(() => {
     const copied = [...favoriteItems];
     return copied.sort((a, b) => {
       const aTime = new Date(a?.createdAt || 0).getTime();
       const bTime = new Date(b?.createdAt || 0).getTime();
-
       if (sortType === "latest") return bTime - aTime;
       return aTime - bTime;
     });
@@ -301,421 +503,633 @@ export default function MyPage() {
     return copied.sort((a, b) => {
       const aTime = new Date(a?.createdAt || 0).getTime();
       const bTime = new Date(b?.createdAt || 0).getTime();
-
       if (sortType === "latest") return bTime - aTime;
       return aTime - bTime;
     });
   }, [reviewItems, sortType]);
 
+  const paymentSummary = useMemo(() => {
+    if (!selectedPaymentReservation) return null;
+
+    return {
+      itemTitle: selectedPaymentReservation?.title || "상품명",
+      thumbnailUrl: buildImageUrl({
+        thumbnailUrl: getReservationImage(selectedPaymentReservation),
+      }),
+      startDate:
+        selectedPaymentReservation?.startDate ||
+        selectedPaymentReservation?.rentalStartDate ||
+        "-",
+      endDate:
+        selectedPaymentReservation?.endDate ||
+        selectedPaymentReservation?.rentalEndDate ||
+        "-",
+      rentalAmount:
+        selectedPaymentReservation?.rentalAmount ||
+        selectedPaymentReservation?.totalRentalAmount ||
+        selectedPaymentReservation?.pricePerDayTotal ||
+        selectedPaymentReservation?.pricePerDay ||
+        0,
+      depositAmount: selectedPaymentReservation?.depositAmount || 0,
+    };
+  }, [selectedPaymentReservation]);
+
   return (
-    <main className={styles.mypage}>
-      <div className={styles.inner}>
-        <section className={styles.topSection}>
-          <div className={styles.profileWrap}>
-            <div className={styles.profileLeft}>
-              <div className={styles.avatar}></div>
-              <h2>{mainInfo?.nickname || "사용자"}</h2>
-              <p>
-                ★★★★★ {mainInfo?.avgRating ?? 0} · 리뷰 {mainInfo?.reviewCount ?? 0}
-              </p>
-              <Link href="/settings">
-                <button type="button">프로필 수정</button>
-              </Link>
-            </div>
-
-            <div className={styles.profileRight}>
-              <div className={styles.profileTop}>
-                <div>
-                  <h1>{mainInfo?.nickname || "사용자"}</h1>
-                  <p>{mainInfo?.areaName || "지역 미정"} · 깔끔 거래</p>
+    <>
+      <main className={styles.mypage}>
+        <div className={styles.inner}>
+          <section className={styles.topSection}>
+            <div className={styles.profileWrap}>
+              <div className={styles.profileLeft}>
+                <div className={styles.avatar}>
+                  {mainInfo?.profileImageUrl ? (
+                    <img src={mainInfo.profileImageUrl} alt={mainInfo?.nickname || "프로필"} />
+                  ) : null}
                 </div>
 
-                <div className={styles.profileBtns}>
-                  <button type="button">동네 변경</button>
-                  <Link href="/settings" className={styles.setbtn}>
-                    설정
-                  </Link>
-                </div>
+                <h2>{mainInfo?.nickname || "사용자"}</h2>
+                <p>
+                  ★★★★★ {mainInfo?.avgRating ?? 0} · 리뷰 {mainInfo?.reviewCount ?? 0}
+                </p>
+
+                <Link href="/settings">
+                  <button type="button">프로필 수정</button>
+                </Link>
               </div>
 
-              <div className={styles.rentalBox}>
-                <div className={styles.rentalText}>
-                  <span>상품 대여</span>
-                  <strong>{mainInfo?.rentedCount ?? 0} 회</strong>
-                </div>
-                <div className={styles.rentalCheck}>✔</div>
-              </div>
-
-              <div className={styles.intro}>
-                {mainInfo?.intro || "소개글이 아직 없습니다."}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className={styles.tabs}>
-          {tabs.map((tab) => (
-            <div
-              key={tab.key}
-              className={`${styles.tab} ${activeTab === tab.key ? styles.active : ""}`}
-              onClick={() => setActiveTab(tab.key)}
-            >
-              <span>{tab.label}</span>
-              <strong>{tab.count}</strong>
-            </div>
-          ))}
-        </section>
-
-        <div className={styles.sortBar}>
-          <div className={styles.sortDropdown} ref={sortRef}>
-            <button
-              type="button"
-              className={styles.sortTrigger}
-              onClick={() => setIsSortOpen((prev) => !prev)}
-            >
-              <span>정렬: {sortType === "latest" ? "최신순" : "오래된순"}</span>
-
-              <span
-                className={`${styles.sortTriggerArrow} ${isSortOpen ? styles.isOpen : ""}`}
-                aria-hidden="true"
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 14 14"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M3 5.5L7 9.5L11 5.5"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </span>
-            </button>
-
-            {isSortOpen && (
-              <div className={styles.sortMenu}>
-                <button
-                  type="button"
-                  className={`${styles.sortMenuItem} ${
-                    sortType === "latest" ? styles.activeSortItem : ""
-                  }`}
-                  onClick={() => {
-                    setSortType("latest");
-                    setIsSortOpen(false);
-                  }}
-                >
-                  최신순
-                </button>
-
-                <button
-                  type="button"
-                  className={`${styles.sortMenuItem} ${
-                    sortType === "oldest" ? styles.activeSortItem : ""
-                  }`}
-                  onClick={() => {
-                    setSortType("oldest");
-                    setIsSortOpen(false);
-                  }}
-                >
-                  오래된순
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {loading && <p className={styles.stateText}>불러오는 중...</p>}
-        {error && <p className={styles.stateText}>{error}</p>}
-
-        {activeTab === "myItems" &&
-          (sortedMyItems.length === 0 ? (
-            <p className={styles.stateText}>등록된 상품이 없습니다.</p>
-          ) : (
-            <section className={styles.grid}>
-              {sortedMyItems.map((item) => (
-                <div className={styles.card} key={item.itemId}>
-                  <div className={styles.thumb}></div>
-
-                  <h3>{item.title}</h3>
-                  <p className={styles.meta}>
-                    {item.location} · {item.timeAgo}
-                  </p>
-                  <p className={styles.price}>
-                    ₩{Number(item.pricePerDay || 0).toLocaleString()} / 하루
-                  </p>
-
-                  <div className={styles.tags}>
-                    <span>보증금 ₩{Number(item.depositAmount || 0).toLocaleString()}</span>
-                    <span>대여 {item.rentalDays || 0}일</span>
-                    <span>{item.pickupLocation || "-"}</span>
-                  </div>
-                </div>
-              ))}
-            </section>
-          ))}
-
-        {activeTab === "rentals" &&
-          (sortedRentalItems.length === 0 ? (
-            <p className={styles.stateText}>대여중인 상품이 없습니다.</p>
-          ) : (
-            <section className={styles.rentalList}>
-              {sortedRentalItems.map((item) => (
-                <div className={styles.rentalCard} key={item.rentalId}>
-                  <div className={styles.rentalShop}>
-                    <div className={styles.rentalAvatar}></div>
-
-                    <div className={styles.rentalShopInfo}>
-                      <p className={styles.rentalShopName}>{item.ownerNickname}</p>
-                      <p className={styles.rentalShopRating}>
-                        대여 상태 {item.rentalStatus}
-                      </p>
-                    </div>
+              <div className={styles.profileRight}>
+                <div className={styles.profileTop}>
+                  <div>
+                    <h1>{mainInfo?.nickname || "사용자"}</h1>
+                    <p>{mainInfo?.areaName || "지역 미정"} · 깔끔 거래</p>
                   </div>
 
-                  <div className={styles.rentalInfo}>
-                    <h3>{item.title}</h3>
-                    <p className={styles.rentalCategory}>{item.category}</p>
-                    <p className={styles.rentalPeriod}>대여기간 : {item.rentalPeriod}</p>
-                    <p className={styles.rentalRemain}>남은기간 : {item.remainingDays}일</p>
-                  </div>
-
-                  <div className={styles.rentalImageBox}>상품 이미지</div>
-
-                  <div className={styles.rentalActions}>
-                    <button className={styles.rentalBtnDark}>대여자 채팅</button>
-                    <button className={styles.rentalBtnDark}>대여기간 연장</button>
+                  <div className={styles.profileBtns}>
+                    <button type="button">동네 변경</button>
+                    <Link href="/settings" className={styles.setbtn}>
+                      설정
+                    </Link>
                   </div>
                 </div>
-              ))}
-            </section>
-          ))}
 
-        {activeTab === "reservations" && (
-          <section className={styles.reservationTable}>
-            <div className={styles.reservationTableHead}>
-              <div className={styles.reservationHeadCol}>
-                <h3>받은 예약요청</h3>
-                <span>{receivedReservations.length}건</span>
-              </div>
+                <div className={styles.rentalBox}>
+                  <div className={styles.rentalText}>
+                    <span>상품 대여</span>
+                    <strong>{mainInfo?.rentedCount ?? 0} 회</strong>
+                  </div>
+                  <div className={styles.rentalCheck}>✔</div>
+                </div>
 
-              <div className={styles.reservationHeadDivider}></div>
-
-              <div className={styles.reservationHeadCol}>
-                <h3>보낸 예약요청</h3>
-                <span>{sentReservations.length}건</span>
-              </div>
-            </div>
-
-            <div className={styles.reservationTableBody}>
-              <div className={styles.reservationBodyCol}>
-                {receivedReservations.length === 0 ? (
-                  <p className={styles.stateText}>받은 예약요청이 없어요.</p>
-                ) : (
-                  receivedReservations.map((item) => (
-                    <div className={styles.reservationCard} key={item.orderId}>
-                      <div className={styles.reservationThumb}></div>
-
-                      <div className={styles.reservationInfo}>
-                        <div className={styles.reservationShopRow}>
-                          <div className={styles.reservationAvatar}></div>
-                          <div className={styles.reservationShopInfo}>
-                            <p className={styles.reservationShopName}>
-                              {item.targetNickname}
-                            </p>
-                            <p className={styles.reservationShopRating}>
-                              ★★★★★ {item.targetMannerScore}
-                            </p>
-                          </div>
-                        </div>
-
-                        <h4>{item.title}</h4>
-                        <p className={styles.reservationCategory}>
-                          카테고리 · {item.category}
-                        </p>
-                        <p className={styles.reservationPeriod}>
-                          대여 요청기간 : {item.requestPeriod}
-                        </p>
-                      </div>
-
-                      <div className={styles.reservationActions}>
-                        <button className={styles.reservationPrimaryBtn}>대여 수락</button>
-                        <button className={styles.reservationSecondaryBtn}>채팅 보내기</button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              <div className={styles.reservationBodyDivider}></div>
-
-              <div className={styles.reservationBodyCol}>
-                {sentReservations.length === 0 ? (
-                  <p className={styles.stateText}>보낸 예약요청이 없어요.</p>
-                ) : (
-                  sentReservations.map((item) => (
-                    <div className={styles.reservationCard} key={item.orderId}>
-                      <div className={styles.reservationThumb}></div>
-
-                      <div className={styles.reservationInfo}>
-                        <div className={styles.reservationShopRow}>
-                          <div className={styles.reservationAvatar}></div>
-                          <div className={styles.reservationShopInfo}>
-                            <p className={styles.reservationShopName}>
-                              {item.targetNickname}
-                            </p>
-                            <p className={styles.reservationShopRating}>
-                              ★★★★★ {item.targetMannerScore}
-                            </p>
-                          </div>
-                        </div>
-
-                        <h4>{item.title}</h4>
-                        <p className={styles.reservationCategory}>
-                          카테고리 · {item.category}
-                        </p>
-                        <p className={styles.reservationPeriod}>
-                          대여 요청기간 : {item.requestPeriod}
-                        </p>
-                      </div>
-
-                      <div className={styles.reservationActions}>
-                        <button className={styles.reservationPrimaryBtn}>{item.status}</button>
-                        <button className={styles.reservationSecondaryBtn}>채팅 보내기</button>
-                      </div>
-                    </div>
-                  ))
-                )}
+                <div className={styles.intro}>
+                  {mainInfo?.intro || "소개글이 아직 없습니다."}
+                </div>
               </div>
             </div>
           </section>
-        )}
 
-        {activeTab === "favorites" &&
-          (sortedFavoriteItems.length === 0 ? (
-            <p className={styles.stateText}>찜한 상품이 없습니다.</p>
-          ) : (
-            <section className={styles.favoriteGrid}>
-              {sortedFavoriteItems.map((item) => {
-                const imageUrl = buildImageUrl(item);
-                const isFavoriteLoading = favoriteLoadingId === item.itemId;
+          <section className={styles.tabs}>
+            {tabs.map((tab) => (
+              <div
+                key={tab.key}
+                className={`${styles.tab} ${activeTab === tab.key ? styles.active : ""}`}
+                onClick={() => setActiveTab(tab.key)}
+              >
+                <span>{tab.label}</span>
+                <strong>{tab.count}</strong>
+              </div>
+            ))}
+          </section>
 
-                return (
-                  <div className={styles.favoriteCard} key={item.itemId}>
-                    <div className={styles.favoriteThumbWrap}>
-                      <Link href={`/products/${item.itemId}`} className={styles.favoriteLink}>
+          <div className={styles.sortBar}>
+            <div className={styles.sortDropdown} ref={sortRef}>
+              <button
+                type="button"
+                className={styles.sortTrigger}
+                onClick={() => setIsSortOpen((prev) => !prev)}
+              >
+                <span>정렬: {sortType === "latest" ? "최신순" : "오래된순"}</span>
+
+                <span
+                  className={`${styles.sortTriggerArrow} ${isSortOpen ? styles.isOpen : ""}`}
+                  aria-hidden="true"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 14 14"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M3 5.5L7 9.5L11 5.5"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+              </button>
+
+              {isSortOpen && (
+                <div className={styles.sortMenu}>
+                  <button
+                    type="button"
+                    className={`${styles.sortMenuItem} ${
+                      sortType === "latest" ? styles.activeSortItem : ""
+                    }`}
+                    onClick={() => {
+                      setSortType("latest");
+                      setIsSortOpen(false);
+                    }}
+                  >
+                    최신순
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`${styles.sortMenuItem} ${
+                      sortType === "oldest" ? styles.activeSortItem : ""
+                    }`}
+                    onClick={() => {
+                      setSortType("oldest");
+                      setIsSortOpen(false);
+                    }}
+                  >
+                    오래된순
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {loading && <p className={styles.stateText}>불러오는 중...</p>}
+          {error && <p className={styles.stateText}>{error}</p>}
+
+          {activeTab === "myItems" &&
+            (sortedMyItems.length === 0 ? (
+              <p className={styles.stateText}>등록된 상품이 없습니다.</p>
+            ) : (
+              <section className={styles.grid}>
+                {sortedMyItems.map((item) => {
+                  const imageUrl = buildImageUrl(item);
+                  const renting = isRentingStatus(getItemProgressStatus(item));
+
+                  return (
+                    <div className={styles.card} key={item.itemId}>
+                      <div className={styles.thumb}>
                         {imageUrl ? (
                           <img
                             src={imageUrl}
                             alt={item.title || "상품 이미지"}
-                            className={styles.favoriteThumbImage}
+                            className={styles.cardThumbImage}
+                          />
+                        ) : null}
+
+                        {renting && <div className={styles.overlay}>대여중</div>}
+                      </div>
+
+                      <h3>{item.title}</h3>
+                      <p className={styles.meta}>
+                        {item.location} · {item.timeAgo}
+                      </p>
+                      <p className={styles.price}>
+                        ₩{Number(item.pricePerDay || 0).toLocaleString()} / 하루
+                      </p>
+
+                      <div className={styles.tags}>
+                        <span>보증금 ₩{Number(item.depositAmount || 0).toLocaleString()}</span>
+                        <span>대여 {item.rentalDays || 0}일</span>
+                        <span>{item.pickupLocation || "-"}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </section>
+            ))}
+
+          {activeTab === "rentals" &&
+            (sortedRentalItems.length === 0 ? (
+              <p className={styles.stateText}>대여한 상품이 없습니다.</p>
+            ) : (
+              <section className={styles.rentalList}>
+                {sortedRentalItems.map((item) => {
+                  const imageUrl = buildImageUrl(item);
+                  const ownerProfileImage = buildImageUrl({
+                    thumbnailUrl: item?.ownerProfileImageUrl,
+                  });
+
+                  return (
+                    <div className={styles.rentalCard} key={item.rentalId || item.itemId}>
+                      <div className={styles.rentalShop}>
+                        <div className={styles.rentalAvatar}>
+                          {ownerProfileImage ? (
+                            <img
+                              src={ownerProfileImage}
+                              alt={item?.ownerNickname || "판매자"}
+                              className={styles.rentalAvatarImage}
+                            />
+                          ) : null}
+                        </div>
+
+                        <div className={styles.rentalShopInfo}>
+                          <p className={styles.rentalShopName}>
+                            {item?.ownerNickname || "판매자"}
+                          </p>
+                          <p className={styles.rentalShopRating}>★★★★★</p>
+                        </div>
+                      </div>
+
+                      <div className={styles.rentalInfo}>
+                        <h3>{item?.title || "상품명"}</h3>
+                        <p className={styles.rentalCategory}>{item?.category || "-"}</p>
+                        <p className={styles.rentalPeriod}>{item?.rentalPeriod || "-"}</p>
+                      </div>
+
+                      <div className={styles.rentalRemain}>
+                        {typeof item?.remainingDays === "number"
+                          ? `${item.remainingDays}일 남음`
+                          : item?.rentalStatus || item?.status || "-"}
+                      </div>
+
+                      <div className={styles.rentalImageBox}>
+                        {imageUrl ? (
+                          <img
+                            src={imageUrl}
+                            alt={item?.title || "상품 이미지"}
+                            className={styles.rentalThumbImage}
                           />
                         ) : (
-                          <div className={styles.favoriteThumb}>이미지 준비중</div>
+                          "이미지"
                         )}
-                      </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </section>
+            ))}
+
+          {activeTab === "reservations" &&
+            (visibleReceivedReservations.length === 0 &&
+            visibleSentReservations.length === 0 ? (
+              <p className={styles.stateText}>예약 내역이 없습니다.</p>
+            ) : (
+              <section className={styles.reservationTable}>
+                <div className={styles.reservationTableHead}>
+                  <div className={styles.reservationHeadCol}>
+                    <h3>받은 예약요청</h3>
+                    <span>{visibleReceivedReservations.length}건</span>
+                  </div>
+
+                  <div className={styles.reservationHeadDivider}></div>
+
+                  <div className={styles.reservationHeadCol}>
+                    <h3>보낸 예약요청</h3>
+                    <span>{visibleSentReservations.length}건</span>
+                  </div>
+                </div>
+
+                <div className={styles.reservationTableBody}>
+                  <div className={styles.reservationBodyCol}>
+                    {visibleReceivedReservations.length === 0 ? (
+                      <p className={styles.stateText}>받은 예약요청이 없습니다.</p>
+                    ) : (
+                      visibleReceivedReservations.map((item) => {
+                        const imageUrl = buildImageUrl({
+                          thumbnailUrl: getReservationImage(item),
+                        });
+                        const profileImage = buildImageUrl({
+                          thumbnailUrl: getTargetProfileImage(item),
+                        });
+                        const pending = isPending(item?.status);
+
+                        return (
+                          <div className={styles.reservationCard} key={`received-${item.orderId}`}>
+                            <div className={styles.reservationThumb}>
+                              {imageUrl ? (
+                                <img
+                                  src={imageUrl}
+                                  alt={item?.title || "상품 이미지"}
+                                  className={styles.reservationThumbImage}
+                                />
+                              ) : (
+                                "이미지"
+                              )}
+                            </div>
+
+                            <div className={styles.reservationInfo}>
+                              <div className={styles.reservationShopRow}>
+                                <div className={styles.reservationAvatar}>
+                                  {profileImage ? (
+                                    <img
+                                      src={profileImage}
+                                      alt={getTargetNickname(item)}
+                                      className={styles.reservationAvatarImage}
+                                    />
+                                  ) : null}
+                                </div>
+
+                                <div className={styles.reservationShopInfo}>
+                                  <p className={styles.reservationShopName}>
+                                    {getTargetNickname(item)}
+                                  </p>
+                                  <p className={styles.reservationShopRating}>
+                                    ★★★★★ {item?.targetMannerScore ?? 0}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <h4>{item?.title || "상품명"}</h4>
+                              <p className={styles.reservationCategory}>
+                                {item?.category || "카테고리 없음"}
+                              </p>
+                              <p className={styles.reservationPeriod}>
+                                {item?.requestPeriod || "-"}
+                              </p>
+                            </div>
+
+                            <div className={styles.reservationActions}>
+                              {pending ? (
+                                <button
+                                  type="button"
+                                  className={styles.reservationPrimaryBtn}
+                                  onClick={() => handleOpenAcceptModal(item)}
+                                >
+                                  대여 수락
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className={styles.reservationPrimaryBtn}
+                                  disabled
+                                >
+                                  {getReceivedStatusLabel(item?.status)}
+                                </button>
+                              )}
+
+                              <button
+                                type="button"
+                                className={styles.reservationSecondaryBtn}
+                              >
+                                채팅 보내기
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  <div className={styles.reservationBodyDivider}></div>
+
+                  <div className={styles.reservationBodyCol}>
+                    {visibleSentReservations.length === 0 ? (
+                      <p className={styles.stateText}>보낸 예약요청이 없습니다.</p>
+                    ) : (
+                      visibleSentReservations.map((item) => {
+                        const imageUrl = buildImageUrl({
+                          thumbnailUrl: getReservationImage(item),
+                        });
+                        const profileImage = buildImageUrl({
+                          thumbnailUrl: getTargetProfileImage(item),
+                        });
+
+                        return (
+                          <div className={styles.reservationCard} key={`sent-${item.orderId}`}>
+                            <div className={styles.reservationThumb}>
+                              {imageUrl ? (
+                                <img
+                                  src={imageUrl}
+                                  alt={item?.title || "상품 이미지"}
+                                  className={styles.reservationThumbImage}
+                                />
+                              ) : (
+                                "이미지"
+                              )}
+                            </div>
+
+                            <div className={styles.reservationInfo}>
+                              <div className={styles.reservationShopRow}>
+                                <div className={styles.reservationAvatar}>
+                                  {profileImage ? (
+                                    <img
+                                      src={profileImage}
+                                      alt={getTargetNickname(item)}
+                                      className={styles.reservationAvatarImage}
+                                    />
+                                  ) : null}
+                                </div>
+
+                                <div className={styles.reservationShopInfo}>
+                                  <p className={styles.reservationShopName}>
+                                    {getTargetNickname(item)}
+                                  </p>
+                                  <p className={styles.reservationShopRating}>
+                                    ★★★★★ {item?.targetMannerScore ?? 0}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <h4>{item?.title || "상품명"}</h4>
+                              <p className={styles.reservationCategory}>
+                                {item?.category || "카테고리 없음"}
+                              </p>
+                              <p className={styles.reservationPeriod}>
+                                {item?.requestPeriod || "-"}
+                              </p>
+                            </div>
+
+                            <div className={styles.reservationActions}>
+                              {item?.status === "ACCEPTED" ? (
+                                <button
+                                  type="button"
+                                  className={styles.reservationPrimaryBtn}
+                                  onClick={() => handleOpenPaymentModal(item)}
+                                >
+                                  결제하기
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className={styles.reservationPrimaryBtn}
+                                  disabled
+                                >
+                                  {getSentStatusLabel(item?.status)}
+                                </button>
+                              )}
+
+                              <button
+                                type="button"
+                                className={styles.reservationSecondaryBtn}
+                              >
+                                채팅 보내기
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </section>
+            ))}
+
+          {activeTab === "favorites" &&
+            (sortedFavoriteItems.length === 0 ? (
+              <p className={styles.stateText}>찜한 상품이 없습니다.</p>
+            ) : (
+              <section className={styles.grid}>
+                {sortedFavoriteItems.map((item) => {
+                  const imageUrl = buildImageUrl(item);
+
+                  return (
+                    <div className={styles.card} key={item.itemId}>
+                      <div className={styles.thumb}>
+                        {imageUrl ? (
+                          <img
+                            src={imageUrl}
+                            alt={item.title || "상품 이미지"}
+                            className={styles.cardThumbImage}
+                          />
+                        ) : null}
+                      </div>
+
+                      <h3>{item.title}</h3>
+                      <p className={styles.meta}>
+                        {item.areaName || item.locationAreaCode || item.location || "-"}
+                      </p>
+                      <p className={styles.price}>
+                        ₩{Number(item.pricePerDay || 0).toLocaleString()} / 하루
+                      </p>
+
+                      <div className={styles.tags}>
+                        {(item.tags || []).slice(0, 3).map((tag, index) => (
+                          <span key={`${item.itemId}-${tag}-${index}`}>{tag}</span>
+                        ))}
+                      </div>
 
                       <button
                         type="button"
-                        className={`${styles.favoriteBtn} ${styles.favoriteBtnActive}`}
+                        className={styles.favoriteRemoveBtn}
                         onClick={() => handleToggleFavoriteInFavorites(item.itemId)}
-                        disabled={isFavoriteLoading}
-                        aria-label="찜 해제"
+                        disabled={favoriteLoadingId === item.itemId}
                       >
-                        <span className={styles.favoriteInner}>
-                          <span className={styles.favoriteIcon}>♥</span>
-                          <span className={styles.favoriteCount}>
-                            {Math.max(1, Number(item.favoriteCount || 0))}
-                          </span>
-                        </span>
+                        {favoriteLoadingId === item.itemId ? "처리중..." : "찜 해제"}
                       </button>
                     </div>
+                  );
+                })}
+              </section>
+            ))}
 
-                    <div className={styles.favoriteBody}>
-                      <Link href={`/products/${item.itemId}`} className={styles.favoriteLink}>
-                        <h3>{item.title || "-"}</h3>
-                      </Link>
+          {activeTab === "reviews" &&
+            (sortedReviewItems.length === 0 ? (
+              <p className={styles.stateText}>등록된 리뷰가 없습니다.</p>
+            ) : (
+              <section className={styles.reviewTab}>
+                <div className={styles.reviewTopTitle}>
+                  <span>리뷰</span>
+                  <strong>{sortedReviewItems.length}</strong>
+                </div>
 
-                      <p className={styles.favoriteMeta}>{item.location || item.locationAreaCode || "-"}</p>
-                      <p className={styles.favoritePrice}>
-                        {item.pricePerDay
-                          ? `₩${Number(item.pricePerDay).toLocaleString()} / 하루`
-                          : "-"}
-                      </p>
-
-                      <div className={styles.favoriteTags}>
-                        {item.depositAmount ? (
-                          <span>보증금 ₩{Number(item.depositAmount).toLocaleString()}</span>
-                        ) : null}
-                        {item.rentalDays ? <span>대여 {item.rentalDays}일</span> : null}
-                        {item.pickupLocation ? <span>{item.pickupLocation}</span> : null}
-                      </div>
-                    </div>
+                <div className={styles.reviewSummaryBar}>
+                  <div className={styles.reviewSummaryLeft}>
+                    <strong className={styles.reviewBigScore}>{avgRating || 0}</strong>
+                    <div className={styles.reviewBigStars}>★★★★★</div>
                   </div>
-                );
-              })}
-            </section>
-          ))}
 
-        {activeTab === "reviews" && (
-          <section className={styles.reviewTab}>
-            <div className={styles.reviewTopTitle}>
-              <span>리뷰</span>
-              <strong>{sortedReviewItems.length}</strong>
-            </div>
+                  <div className={styles.reviewSummaryDivider}></div>
 
-            <div className={styles.reviewSummaryBar}>
-              <div className={styles.reviewSummaryLeft}>
-                <strong className={styles.reviewBigScore}>{avgRating || 0}</strong>
-                <div className={styles.reviewBigStars}>★★★★★</div>
-              </div>
+                  <div className={styles.reviewSummaryRight}>
+                    <strong className={styles.reviewBigPercent}>100%</strong>
+                    <p>만족후기</p>
+                  </div>
+                </div>
 
-              <div className={styles.reviewSummaryDivider}></div>
-
-              <div className={styles.reviewSummaryRight}>
-                <strong className={styles.reviewBigPercent}>100%</strong>
-                <p>만족후기</p>
-              </div>
-            </div>
-
-            <div className={styles.reviewFeed}>
-              {!Array.isArray(sortedReviewItems) || sortedReviewItems.length === 0 ? (
-                <p className={styles.stateText}>등록된 리뷰가 없어요.</p>
-              ) : (
-                sortedReviewItems.map((item) => (
-                  <div className={styles.reviewFeedItem} key={item.reviewId}>
-                    <div className={styles.reviewFeedTop}>
-                      <div className={styles.reviewProfile}>
-                        <div className={styles.reviewAvatar}></div>
+                <div className={styles.reviewFeed}>
+                  {sortedReviewItems.map((item) => (
+                    <div className={styles.reviewFeedItem} key={item.reviewId}>
+                      <div className={styles.reviewHeader}>
                         <div className={styles.reviewUserInfo}>
-                          <h4>리뷰</h4>
-                          <div className={styles.reviewStars}>
-                            {"★".repeat(item.rating || 0)}
+                          <div className={styles.reviewAvatar}>
+                            {item?.reviewerProfileImageUrl ? (
+                              <img
+                                src={buildImageUrl({ thumbnailUrl: item.reviewerProfileImageUrl })}
+                                alt={item?.reviewerNickname || "리뷰 작성자"}
+                                className={styles.reviewAvatarImage}
+                              />
+                            ) : null}
+                          </div>
+
+                          <div>
+                            <strong>{item?.reviewerNickname || "사용자"}</strong>
+                            <span>★★★★★ {item?.rating || 0}</span>
                           </div>
                         </div>
+
+                        <div className={styles.reviewDate}>{item?.createdAt || "-"}</div>
                       </div>
+
+                      {Array.isArray(item?.tags) && item.tags.length > 0 && (
+                        <div className={styles.reviewTagPills}>
+                          {item.tags.map((tag, index) => (
+                            <span key={`${item.reviewId}-${tag}-${index}`}>{tag}</span>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className={styles.reviewContentBox}>
+                        <p className={styles.reviewContent}>
+                          {item?.content || "리뷰 내용이 없습니다."}
+                        </p>
+                      </div>
+
+                      <button type="button" className={styles.reportBtn}>
+                        신고하기
+                      </button>
                     </div>
+                  ))}
+                </div>
+              </section>
+            ))}
+        </div>
+      </main>
 
-                    <div className={styles.reviewTagPills}>
-                      {(item.tags || []).map((tag, idx) => (
-                        <span key={idx}>{tag}</span>
-                      ))}
-                    </div>
+      <RentalRequestModal
+        open={acceptModalOpen}
+        onClose={handleCloseAcceptModal}
+        mode="accept"
+        orderId={selectedReservation?.orderId || null}
+        product={{
+          itemId: selectedReservation?.itemId || null,
+          title: selectedReservation?.title || "상품명",
+          thumbnailUrl: getReservationImage(selectedReservation || {}),
+          pricePerDay: selectedReservation?.pricePerDay || 0,
+          areaName:
+            selectedReservation?.areaName ||
+            selectedReservation?.locationAreaCode ||
+            selectedReservation?.location ||
+            "",
+          ownerNickname: getTargetNickname(selectedReservation || {}),
+        }}
+        shopInfo={{
+          nickname: getTargetNickname(selectedReservation || {}),
+        }}
+        targetUserId={selectedReservation?.targetUserId || null}
+        onCompleted={async () => {
+          handleCloseAcceptModal();
+          await refetchAll();
+          window.dispatchEvent(new Event("RENT_STATUS_CHANGED"));
+        }}
+      />
 
-                    <p className={styles.reviewContent}>{item.content || "-"}</p>
-
-                    <button className={styles.reportBtn}>신고하기</button>
-                  </div>
-                ))
-              )}
-            </div>
-          </section>
-        )}
-      </div>
-    </main>
+      <PaymentModal
+        open={paymentModalOpen}
+        onClose={handleClosePaymentModal}
+        orderId={selectedPaymentReservation?.orderId || null}
+        summary={paymentSummary}
+        onPaid={handlePaymentCompleted}
+      />
+    </>
   );
 }

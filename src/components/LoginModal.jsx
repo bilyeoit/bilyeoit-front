@@ -3,6 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { loginUser, signupUser } from "../services/auth";
 
+function parseJwt(token) {
+  try {
+    const base64Payload = token.split(".")[1];
+    const normalized = base64Payload.replace(/-/g, "+").replace(/_/g, "/");
+    const payload = atob(normalized);
+    return JSON.parse(payload);
+  } catch {
+    return null;
+  }
+}
+
 export default function LoginModal({ open, onClose, onLoginSuccess }) {
   const [activeTab, setActiveTab] = useState("login");
 
@@ -148,6 +159,15 @@ export default function LoginModal({ open, onClose, onLoginSuccess }) {
 
       if (data?.accessToken) {
         localStorage.setItem("accessToken", data.accessToken);
+
+        const payload = parseJwt(data.accessToken);
+        const extractedUserId = payload?.sub;
+
+        if (extractedUserId) {
+          localStorage.setItem("userId", String(extractedUserId));
+        } else {
+          localStorage.removeItem("userId");
+        }
       }
 
       if (data?.refreshToken) {

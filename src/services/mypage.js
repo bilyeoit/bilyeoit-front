@@ -29,3 +29,7 @@ export function getFavorites() {
 export function getReviews() {
   return apiRequest("/bilyeoit/v1/mypage/reviews");
 }
+
+export async function getReservationDashboard() {
+  return apiRequest("/bilyeoit/v1/mypage/reservations");
+}

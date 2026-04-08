@@ -431,7 +431,7 @@ export default function HomePage() {
                 <p>지금 올라와 있는 상품을 모두 보여드려요</p>
               </div>
 
-              <Link href="/products" className="section-link">
+              <Link href="/product" className="section-link">
                 최근 게시글 전체보기 <span>→</span>
               </Link>
             </div>
@@ -446,7 +446,7 @@ export default function HomePage() {
               <div className="product-grid">
                 {normalizedProducts.map((item) => (
                   <Link
-                    href={`/products/${item.id}`}
+                    href={`/product/${item.id}`}
                     key={item.id}
                     className="product-card-link"
                   >
