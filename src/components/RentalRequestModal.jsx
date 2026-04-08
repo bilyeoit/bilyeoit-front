@@ -231,90 +231,105 @@ export default function RentalRequestModal({
   };
 
   const handleAcceptSubmit = async () => {
-    const errorMessage = validate();
-    if (errorMessage) {
-      alert(errorMessage);
-      return;
-    }
+  const errorMessage = validate();
+  if (errorMessage) {
+    alert(errorMessage);
+    return;
+  }
 
-    if (!orderId) {
-      alert("주문 정보가 없어 요청을 수락할 수 없어요.");
-      return;
-    }
+  if (!orderId) {
+    alert("주문 정보가 없어 요청을 수락할 수 없어요.");
+    return;
+  }
 
-    try {
-      setSubmitting(true);
+  try {
+    setSubmitting(true);
 
-      await acceptRentOrder(orderId);
+    await acceptRentOrder(orderId);
 
-      const room = await findOrCreateRoom();
-      const roomId = room?.roomId || room?.id;
+    const room = await findOrCreateRoom();
+    const roomId = room?.roomId || room?.id;
 
-      const startDate = form.startDate || "";
-      const endDate = form.endDate || "";
+    const startDate = form.startDate || "";
+    const endDate = form.endDate || "";
 
-      const start = startDate ? new Date(startDate) : null;
-      const end = endDate ? new Date(endDate) : null;
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
 
-      const diffTime =
-        start && end ? end.getTime() - start.getTime() : 0;
+    const diffTime =
+      start && end ? end.getTime() - start.getTime() : 0;
 
-      const rentalDays =
-        diffTime > 0
-          ? Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-          : 0;
+    const rentalDays =
+      diffTime > 0
+        ? Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        : 0;
 
-      const pricePerDay = displayPricePerDay;
-      const depositAmount = displayDepositAmount;
-      const rentalAmount = pricePerDay * rentalDays;
+    const pricePerDay = Number(
+      product?.pricePerDay ||
+      requestDetail?.pricePerDay ||
+      0
+    );
 
-      await sendChatMessage({
-        roomId,
-        messageType: "PAYMENT",
-        message: "대여 요청이 수락되었어요. 결제를 진행해주세요.",
-        imageUrl: null,
+    const depositAmount = Number(
+      product?.depositAmount ||
+      requestDetail?.depositAmount ||
+      0
+    );
+
+    const rentalAmount = pricePerDay * rentalDays;
+    const totalAmount = rentalAmount + depositAmount;
+
+    await sendChatMessage({
+      roomId,
+      messageType: "PAYMENT",
+      message: "대여 요청이 수락되었어요. 결제를 진행해주세요.",
+      imageUrl: null,
+      orderId,
+      itemTitle: product?.title || "상품명",
+      thumbnailUrl: thumbnailUrl || "",
+      startDate,
+      endDate,
+      pricePerDay,
+      rentalDays,
+      rentalAmount,
+      depositAmount,
+      totalAmount,
+      status: "ACCEPTED",
+      payload: {
         orderId,
-        startDate,
-        endDate,
-        pricePerDay,
-        rentalAmount,
-        depositAmount,
         itemTitle: product?.title || "상품명",
         thumbnailUrl: thumbnailUrl || "",
+        startDate,
+        endDate,
+        rentalStartDate: startDate,
+        rentalEndDate: endDate,
+        pricePerDay,
+        rentalDays,
+        rentalAmount,
+        totalRentalAmount: rentalAmount,
+        depositAmount,
+        totalAmount,
         status: "ACCEPTED",
-        payload: {
-          orderId,
-          itemTitle: product?.title || "상품명",
-          thumbnailUrl: thumbnailUrl || "",
-          startDate,
-          endDate,
-          rentalStartDate: startDate,
-          rentalEndDate: endDate,
-          pricePerDay,
-          rentalAmount,
-          totalRentalAmount: rentalAmount,
-          depositAmount,
-          status: "ACCEPTED",
-        },
-      });
+      },
+    });
 
-      alert("대여 요청을 수락했어요. 현재 상태는 결제 대기중입니다.");
-      onClose();
+    alert("대여 요청을 수락했어요. 현재 상태는 결제 대기중입니다.");
+    onClose();
 
-      if (typeof onCompleted === "function") {
-        onCompleted();
-      } else if (roomId) {
-        router.push(`/chat/${roomId}`);
-      } else {
-        router.push("/mypage");
-      }
-    } catch (error) {
-      console.error("대여 수락 실패:", error);
-      alert(error.message || "대여 수락 중 오류가 발생했어요.");
-    } finally {
-      setSubmitting(false);
+    if (typeof onCompleted === "function") {
+      onCompleted();
+    } else if (roomId) {
+      router.push(`/chat/${roomId}`);
+    } else {
+      router.push("/mypage");
     }
-  };
+  } catch (error) {
+    console.error("대여 수락 실패:", error);
+    alert(error.message || "대여 수락 중 오류가 발생했어요.");
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const handleSubmit = () => {
     if (isAcceptMode) {

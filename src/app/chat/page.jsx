@@ -95,7 +95,6 @@ function isMineMessage(message, myUserId) {
 function buildPaymentCardData(message, fallbackOrderStatus = "") {
   const payload = message?.payload || {};
 
-  // 날짜 추출
   const startDate =
     message?.startDate ||
     payload?.startDate ||
@@ -108,7 +107,6 @@ function buildPaymentCardData(message, fallbackOrderStatus = "") {
     payload?.rentalEndDate ||
     null;
 
-  // 날짜 포맷 (2026.04.08.)
   function formatDateText(date) {
     if (!date) return "-";
     try {
@@ -118,41 +116,47 @@ function buildPaymentCardData(message, fallbackOrderStatus = "") {
     }
   }
 
-  // 대여일수 계산
-  function calcDays(start, end) {
+  function calcRentalDays(start, end) {
     if (!start || !end) return 0;
 
     const s = new Date(start);
     const e = new Date(end);
 
-    if (isNaN(s.getTime()) || isNaN(e.getTime())) return 0;
+    if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return 0;
 
-    const diff = e - s;
+    const diff = e.getTime() - s.getTime();
     const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
 
     return days > 0 ? days : 0;
   }
 
-  const days = calcDays(startDate, endDate);
-
-  // 가격 계산
-  const pricePerDay =
-    payload?.pricePerDay ||
+  const pricePerDay = Number(
     message?.pricePerDay ||
-    0;
+      payload?.pricePerDay ||
+      0
+  );
 
-  const rentalAmount =
+  const rentalDays = Number(
+    message?.rentalDays ||
+      payload?.rentalDays ||
+      calcRentalDays(startDate, endDate) ||
+      0
+  );
+
+  const rentalAmount = Number(
     message?.rentalAmount ||
-    payload?.rentalAmount ||
-    payload?.totalRentalAmount ||
-    payload?.pricePerDayTotal ||
-    (pricePerDay * days) ||
-    0;
+      payload?.rentalAmount ||
+      payload?.totalRentalAmount ||
+      payload?.pricePerDayTotal ||
+      (pricePerDay * rentalDays) ||
+      0
+  );
 
-  const depositAmount =
+  const depositAmount = Number(
     message?.depositAmount ||
-    payload?.depositAmount ||
-    0;
+      payload?.depositAmount ||
+      0
+  );
 
   return {
     orderId: message?.orderId || payload?.orderId || null,
@@ -171,16 +175,17 @@ function buildPaymentCardData(message, fallbackOrderStatus = "") {
       payload?.imageUrl ||
       "",
 
-    // 기존 값 유지
     startDate: startDate || "-",
     endDate: endDate || "-",
 
-    // 🔥 추가 (PaymentSummaryCard에서 쓰는 핵심)
     pickupText: formatDateText(startDate),
     returnText: formatDateText(endDate),
 
+    pricePerDay,
+    rentalDays,
     rentalAmount,
     depositAmount,
+    totalAmount: rentalAmount + depositAmount,
 
     status:
       message?.status ||
@@ -534,15 +539,22 @@ export default function ChatPage() {
   };
 
   const handleOpenPaymentModal = (cardData) => {
-    if (!cardData?.orderId) {
-      alert("주문 정보가 없어 결제를 진행할 수 없어요.");
-      return;
-    }
+  if (!cardData?.orderId) {
+    alert("주문 정보가 없어 결제를 진행할 수 없어요.");
+    return;
+  }
 
-    setSelectedPaymentOrderId(cardData.orderId);
-    setSelectedPaymentCard(cardData);
-    setPaymentModalOpen(true);
-  };
+  setSelectedPaymentOrderId(cardData.orderId);
+  setSelectedPaymentCard({
+    ...cardData,
+    rentalAmount: Number(cardData?.rentalAmount || 0),
+    depositAmount: Number(cardData?.depositAmount || 0),
+    totalAmount:
+      Number(cardData?.rentalAmount || 0) +
+      Number(cardData?.depositAmount || 0),
+  });
+  setPaymentModalOpen(true);
+};
 
   const handlePaid = async () => {
     setPaymentModalOpen(false);
@@ -589,34 +601,59 @@ export default function ChatPage() {
       Number(previous?.senderId) !== Number(message?.senderId));
 
   if (message?.messageType === "PAYMENT") {
-    const cardData = buildPaymentCardData(message, selectedRoom?.orderStatus);
-    const summaryState = paymentSummaryMap[cardData.orderId];
+  const cardData = buildPaymentCardData(message, selectedRoom?.orderStatus);
+  const summaryState = paymentSummaryMap[cardData.orderId];
 
-    const mergedCardData = {
-      ...cardData,
-      isPaid: summaryState?.isPaid ?? (cardData.status === "PAID"),
-      balance: summaryState?.balance ?? 0,
-      status: summaryState?.status || cardData.status,
-    };
+  const mergedCardData = {
+    ...cardData,
+    isPaid: summaryState?.isPaid ?? (cardData.status === "PAID"),
+    balance: summaryState?.balance ?? 0,
+    status: summaryState?.status || cardData.status,
+    rentalAmount: Number(
+      summaryState?.rentalAmount ?? cardData?.rentalAmount ?? 0
+    ),
+    depositAmount: Number(
+      summaryState?.depositAmount ?? cardData?.depositAmount ?? 0
+    ),
+    totalAmount:
+      Number(summaryState?.rentalAmount ?? cardData?.rentalAmount ?? 0) +
+      Number(summaryState?.depositAmount ?? cardData?.depositAmount ?? 0),
+    pickupText:
+      summaryState?.pickupText ||
+      cardData?.pickupText ||
+      "-",
+    returnText:
+      summaryState?.returnText ||
+      cardData?.returnText ||
+      "-",
+    startDate:
+      summaryState?.startDate ||
+      cardData?.startDate ||
+      "-",
+    endDate:
+      summaryState?.endDate ||
+      cardData?.endDate ||
+      "-",
+  };
 
-    return (
-      <div key={message?.messageId || `${message?.createdAt}-${index}`}>
-        {showDateDivider && (
-          <div className={styles.dateDivider}>
-            {formatDateDivider(message?.createdAt)}
-          </div>
-        )}
-
-        <div className={styles.summaryWrap}>
-          <PaymentSummaryCard
-            summary={mergedCardData}
-            orderStatus={mergedCardData?.status}
-            onClickPay={() => handleOpenPaymentModal(mergedCardData)}
-          />
+  return (
+    <div key={message?.messageId || `${message?.createdAt}-${index}`}>
+      {showDateDivider && (
+        <div className={styles.dateDivider}>
+          {formatDateDivider(message?.createdAt)}
         </div>
+      )}
+
+      <div className={styles.summaryWrap}>
+        <PaymentSummaryCard
+          summary={mergedCardData}
+          orderStatus={mergedCardData?.status}
+          onClickPay={() => handleOpenPaymentModal(mergedCardData)}
+        />
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <div key={message?.messageId || `${message?.createdAt}-${index}`}>

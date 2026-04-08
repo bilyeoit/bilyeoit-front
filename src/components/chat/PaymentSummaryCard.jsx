@@ -26,17 +26,18 @@ export default function PaymentSummaryCard({
   summary,
   orderStatus,
   onClickPay,
-  onClickConfirmReturn,
-  canConfirmReturn = false,
 }) {
   if (!summary) return null;
 
+  const pickupText = summary?.pickupText || "-";
+  const returnText = summary?.returnText || "-";
   const rentalAmount = Number(summary?.rentalAmount || 0);
   const depositAmount = Number(summary?.depositAmount || 0);
   const totalAmount = rentalAmount + depositAmount;
 
-  const isPaidState =
+  const isPaidOrProgress =
     orderStatus === "PAID" || orderStatus === "IN_PROGRESS";
+
   const isCompleted = orderStatus === "COMPLETED";
 
   return (
@@ -46,10 +47,10 @@ export default function PaymentSummaryCard({
 
         <div className={styles.lines}>
           <p>
-            픽업: <strong>{summary.pickupText || "-"}</strong>
+            픽업: <strong>{pickupText}</strong>
           </p>
           <p>
-            반납: <strong>{summary.returnText || "-"}</strong>
+            반납: <strong>{returnText}</strong>
           </p>
           <p>
             대여비: <strong>{formatCurrency(rentalAmount)}</strong>
@@ -68,28 +69,18 @@ export default function PaymentSummaryCard({
           {getStatusLabel(orderStatus)}
         </button>
 
-        {isCompleted ? (
-          <button type="button" className={styles.payBtn} disabled>
-            대여종료
-          </button>
-        ) : canConfirmReturn && isPaidState ? (
-          <button
-            type="button"
-            className={styles.payBtn}
-            onClick={onClickConfirmReturn}
-          >
-            반납 확인
-          </button>
-        ) : (
-          <button
-            type="button"
-            className={styles.payBtn}
-            onClick={onClickPay}
-            disabled={isPaidState || isCompleted}
-          >
-            {isPaidState ? "반납대기중" : "결제하기"}
-          </button>
-        )}
+        <button
+          type="button"
+          className={styles.payBtn}
+          onClick={onClickPay}
+          disabled={isPaidOrProgress || isCompleted}
+        >
+          {isCompleted
+            ? "대여종료"
+            : isPaidOrProgress
+            ? "결제완료"
+            : "결제하기"}
+        </button>
       </div>
     </div>
   );
