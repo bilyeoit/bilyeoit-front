@@ -118,13 +118,16 @@ export default function RentalRequestModal({
     product?.location ||
     "";
 
-    const locationDisplayText = sellerLocation || "정확한 장소는 채팅방에서 조율해요.";
+  const locationDisplayText =
+    sellerLocation || "정확한 장소는 채팅방에서 조율해요.";
 
   const ownerName =
     shopInfo?.nickname ||
     product?.ownerNickname ||
     product?.nickname ||
     "owner";
+
+  const displayPricePerDay = Number(product?.pricePerDay || 0);
 
   if (!open) return null;
 
@@ -138,7 +141,9 @@ export default function RentalRequestModal({
     if (form.endDate < form.startDate) {
       return "대여 종료일은 시작일보다 빠를 수 없어요.";
     }
-    if (!form.requestMessage.trim()) return "요청 메시지를 입력해주세요.";
+    if (!isAcceptMode && !form.requestMessage.trim()) {
+      return "요청 메시지를 입력해주세요.";
+    }
     if (!form.agreedToTerms) return "대여 약관 및 유의사항에 동의해주세요.";
     return "";
   };
@@ -154,7 +159,10 @@ export default function RentalRequestModal({
               room?.renterUserId || room?.targetUserId || null;
 
             if (targetUserId) {
-              return roomItemId === product?.itemId && roomTargetUserId === targetUserId;
+              return (
+                roomItemId === product?.itemId &&
+                roomTargetUserId === targetUserId
+              );
             }
 
             return roomItemId === product?.itemId;
@@ -189,7 +197,7 @@ export default function RentalRequestModal({
         contactNumber: form.contactNumber.trim() || null,
         requestMessage: form.requestMessage.trim(),
         agreedToTerms: form.agreedToTerms,
-        });
+      });
 
       alert("대여 요청이 전송되었어요.");
       onClose();
@@ -226,53 +234,53 @@ export default function RentalRequestModal({
       const room = await findOrCreateRoom();
       const roomId = room?.roomId || room?.id;
 
-    const startDate = form.startDate || "";
-const endDate = form.endDate || "";
+      const startDate = form.startDate || "";
+      const endDate = form.endDate || "";
 
-const start = startDate ? new Date(startDate) : null;
-const end = endDate ? new Date(endDate) : null;
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
 
-const diffTime =
-  start && end ? end.getTime() - start.getTime() : 0;
+      const diffTime =
+        start && end ? end.getTime() - start.getTime() : 0;
 
-const rentalDays =
-  diffTime > 0
-    ? Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    : 0;
+      const rentalDays =
+        diffTime > 0
+          ? Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+          : 0;
 
-const pricePerDay = Number(product?.pricePerDay || 0);
-const depositAmount = Number(product?.depositAmount || 0);
-const rentalAmount = pricePerDay * rentalDays;
+      const pricePerDay = Number(product?.pricePerDay || 0);
+      const depositAmount = Number(product?.depositAmount || 0);
+      const rentalAmount = pricePerDay * rentalDays;
 
-await sendChatMessage({
-  roomId,
-  messageType: "PAYMENT",
-  message: "대여 요청이 수락되었어요. 결제를 진행해주세요.",
-  imageUrl: null,
-  orderId,
-  startDate,
-  endDate,
-  pricePerDay,
-  rentalAmount,
-  depositAmount,
-  itemTitle: product?.title || "상품명",
-  thumbnailUrl: thumbnailUrl || "",
-  status: "ACCEPTED",
-  payload: {
-    orderId,
-    itemTitle: product?.title || "상품명",
-    thumbnailUrl: thumbnailUrl || "",
-    startDate,
-    endDate,
-    rentalStartDate: startDate,
-    rentalEndDate: endDate,
-    pricePerDay,
-    rentalAmount,
-    totalRentalAmount: rentalAmount,
-    depositAmount,
-    status: "ACCEPTED",
-  },
-});
+      await sendChatMessage({
+        roomId,
+        messageType: "PAYMENT",
+        message: "대여 요청이 수락되었어요. 결제를 진행해주세요.",
+        imageUrl: null,
+        orderId,
+        startDate,
+        endDate,
+        pricePerDay,
+        rentalAmount,
+        depositAmount,
+        itemTitle: product?.title || "상품명",
+        thumbnailUrl: thumbnailUrl || "",
+        status: "ACCEPTED",
+        payload: {
+          orderId,
+          itemTitle: product?.title || "상품명",
+          thumbnailUrl: thumbnailUrl || "",
+          startDate,
+          endDate,
+          rentalStartDate: startDate,
+          rentalEndDate: endDate,
+          pricePerDay,
+          rentalAmount,
+          totalRentalAmount: rentalAmount,
+          depositAmount,
+          status: "ACCEPTED",
+        },
+      });
 
       alert("대여 요청을 수락했어요. 현재 상태는 결제 대기중입니다.");
       onClose();
@@ -285,6 +293,7 @@ await sendChatMessage({
         router.push("/mypage");
       }
     } catch (error) {
+      console.error("대여 수락 실패:", error);
       alert(error.message || "대여 수락 중 오류가 발생했어요.");
     } finally {
       setSubmitting(false);
@@ -296,16 +305,6 @@ await sendChatMessage({
       handleAcceptSubmit();
       return;
     }
-
-    console.log({
-  itemId: product.itemId,
-  startDate: form.startDate,
-  endDate: form.endDate,
-  receiveMethod: "DIRECT",
-  contactNumber: form.contactNumber.trim() || null,
-  requestMessage: form.requestMessage.trim(),
-  agreedToTerms: form.agreedToTerms,
-});
 
     handleCreateSubmit();
   };
@@ -344,7 +343,7 @@ await sendChatMessage({
 
           <div className={styles.itemPrice}>
             <span className={styles.itemPriceValue}>
-            ₩{formatPrice(displayPricePerDay)}
+              ₩{formatPrice(displayPricePerDay)}
             </span>
             <span className={styles.itemPriceUnit}> / 하루</span>
           </div>
@@ -379,9 +378,10 @@ await sendChatMessage({
             <div className={styles.grid2}>
               <div className={styles.field}>
                 <label>거래 위치</label>
-
                 <div className={styles.locationInputLike}>
-                    <span className={styles.locationInputText}>{locationDisplayText}</span>
+                  <span className={styles.locationInputText}>
+                    {locationDisplayText}
+                  </span>
                 </div>
               </div>
 
