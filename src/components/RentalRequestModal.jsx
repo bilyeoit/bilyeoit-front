@@ -125,6 +125,8 @@ export default function RentalRequestModal({
     product?.ownerNickname ||
     product?.nickname ||
     "owner";
+    console.log("RentalRequestModal product:", product);
+    console.log("RentalRequestModal product.pricePerDay:", product?.pricePerDay);
 
   if (!open) return null;
 

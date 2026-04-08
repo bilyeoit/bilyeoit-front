@@ -1096,32 +1096,41 @@ export default function MyPage() {
       </main>
 
       <RentalRequestModal
-        open={acceptModalOpen}
-        onClose={handleCloseAcceptModal}
-        mode="accept"
-        orderId={selectedReservation?.orderId || null}
-        product={{
-          itemId: selectedReservation?.itemId || null,
-          title: selectedReservation?.title || "상품명",
-          thumbnailUrl: getReservationImage(selectedReservation || {}),
-          pricePerDay: selectedReservation?.pricePerDay || 0,
-          areaName:
-            selectedReservation?.areaName ||
-            selectedReservation?.locationAreaCode ||
-            selectedReservation?.location ||
-            "",
-          ownerNickname: getTargetNickname(selectedReservation || {}),
-        }}
-        shopInfo={{
-          nickname: getTargetNickname(selectedReservation || {}),
-        }}
-        targetUserId={selectedReservation?.targetUserId || null}
-        onCompleted={async () => {
-          handleCloseAcceptModal();
-          await refetchAll();
-          window.dispatchEvent(new Event("RENT_STATUS_CHANGED"));
-        }}
-      />
+  open={acceptModalOpen}
+  onClose={handleCloseAcceptModal}
+  mode="accept"
+  orderId={selectedReservation?.orderId || null}
+  product={{
+    itemId: selectedReservation?.itemId || null,
+    title: selectedReservation?.title || "상품명",
+    thumbnailUrl: getReservationImage(selectedReservation || {}),
+    pricePerDay:
+      selectedReservation?.pricePerDay ||
+      selectedReservation?.dailyRental ||
+      selectedReservation?.rentalPrice ||
+      selectedReservation?.price ||
+      0,
+    depositAmount:
+      selectedReservation?.depositAmount ||
+      selectedReservation?.recommendedDeposit ||
+      0,
+    areaName:
+      selectedReservation?.areaName ||
+      selectedReservation?.locationAreaCode ||
+      selectedReservation?.location ||
+      "",
+    ownerNickname: getTargetNickname(selectedReservation || {}),
+  }}
+  shopInfo={{
+    nickname: getTargetNickname(selectedReservation || {}),
+  }}
+  targetUserId={selectedReservation?.targetUserId || null}
+  onCompleted={async () => {
+    handleCloseAcceptModal();
+    await refetchAll();
+    window.dispatchEvent(new Event("RENT_STATUS_CHANGED"));
+  }}
+/>
 
       <PaymentModal
         open={paymentModalOpen}
