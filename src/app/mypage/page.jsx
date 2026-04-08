@@ -1104,16 +1104,8 @@ export default function MyPage() {
     itemId: selectedReservation?.itemId || null,
     title: selectedReservation?.title || "상품명",
     thumbnailUrl: getReservationImage(selectedReservation || {}),
-    pricePerDay:
-      selectedReservation?.pricePerDay ||
-      selectedReservation?.dailyRental ||
-      selectedReservation?.rentalPrice ||
-      selectedReservation?.price ||
-      0,
-    depositAmount:
-      selectedReservation?.depositAmount ||
-      selectedReservation?.recommendedDeposit ||
-      0,
+    pricePerDay: selectedReservation?.pricePerDay || 0,
+    depositAmount: selectedReservation?.depositAmount || 0,
     areaName:
       selectedReservation?.areaName ||
       selectedReservation?.locationAreaCode ||
