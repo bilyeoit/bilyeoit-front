@@ -40,6 +40,7 @@ export default function RentalRequestModal({
   const [form, setForm] = useState(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [loadingRequest, setLoadingRequest] = useState(false);
+  const [requestDetail, setRequestDetail] = useState(null);
 
   const isAcceptMode = mode === "accept";
 
@@ -64,6 +65,7 @@ export default function RentalRequestModal({
       setForm(initialForm);
       setSubmitting(false);
       setLoadingRequest(false);
+      setRequestDetail(null);
     }
   }, [open]);
 
@@ -78,6 +80,8 @@ export default function RentalRequestModal({
         const data = await getRentOrderRequest(orderId);
 
         if (!mounted) return;
+
+        setRequestDetail(data || null);
 
         setForm({
           startDate: data?.startDate || "",
@@ -127,7 +131,17 @@ export default function RentalRequestModal({
     product?.nickname ||
     "owner";
 
-  const displayPricePerDay = Number(product?.pricePerDay || 0);
+  const displayPricePerDay = Number(
+    product?.pricePerDay ||
+      requestDetail?.pricePerDay ||
+      0
+  );
+
+  const displayDepositAmount = Number(
+    product?.depositAmount ||
+      requestDetail?.depositAmount ||
+      0
+  );
 
   if (!open) return null;
 
@@ -197,6 +211,7 @@ export default function RentalRequestModal({
         contactNumber: form.contactNumber.trim() || null,
         requestMessage: form.requestMessage.trim(),
         agreedToTerms: form.agreedToTerms,
+        pricePerDay: displayPricePerDay,
       });
 
       alert("대여 요청이 전송되었어요.");
@@ -208,6 +223,7 @@ export default function RentalRequestModal({
         router.push("/mypage");
       }
     } catch (error) {
+      console.error("대여 요청 실패:", error);
       alert(error.message || "대여 요청 중 오류가 발생했어요.");
     } finally {
       setSubmitting(false);
@@ -248,8 +264,8 @@ export default function RentalRequestModal({
           ? Math.ceil(diffTime / (1000 * 60 * 60 * 24))
           : 0;
 
-      const pricePerDay = Number(product?.pricePerDay || 0);
-      const depositAmount = Number(product?.depositAmount || 0);
+      const pricePerDay = displayPricePerDay;
+      const depositAmount = displayDepositAmount;
       const rentalAmount = pricePerDay * rentalDays;
 
       await sendChatMessage({
@@ -314,8 +330,8 @@ export default function RentalRequestModal({
       ? "수락 중..."
       : "신청 중..."
     : isAcceptMode
-    ? "요청 수락"
-    : "신청 보내기";
+      ? "요청 수락"
+      : "신청 보내기";
 
   return (
     <div className={styles.overlay} onClick={onClose}>

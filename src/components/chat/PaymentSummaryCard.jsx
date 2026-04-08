@@ -13,11 +13,10 @@ function getStatusLabel(status) {
     case "ACCEPTED":
       return "결제 대기중";
     case "PAID":
-      return "결제 완료";
     case "IN_PROGRESS":
-      return "진행중";
+      return "반납 대기중";
     case "COMPLETED":
-      return "완료";
+      return "대여종료";
     default:
       return "예약 요청 중";
   }
@@ -27,8 +26,18 @@ export default function PaymentSummaryCard({
   summary,
   orderStatus,
   onClickPay,
+  onClickConfirmReturn,
+  canConfirmReturn = false,
 }) {
   if (!summary) return null;
+
+  const rentalAmount = Number(summary?.rentalAmount || 0);
+  const depositAmount = Number(summary?.depositAmount || 0);
+  const totalAmount = rentalAmount + depositAmount;
+
+  const isPaidState =
+    orderStatus === "PAID" || orderStatus === "IN_PROGRESS";
+  const isCompleted = orderStatus === "COMPLETED";
 
   return (
     <div className={styles.card}>
@@ -43,11 +52,13 @@ export default function PaymentSummaryCard({
             반납: <strong>{summary.returnText || "-"}</strong>
           </p>
           <p>
-            총액:{" "}
-            <strong>
-              {formatCurrency(summary.rentalAmount)} + 보증금{" "}
-              {formatCurrency(summary.depositAmount)}
-            </strong>
+            대여비: <strong>{formatCurrency(rentalAmount)}</strong>
+          </p>
+          <p>
+            보증금: <strong>{formatCurrency(depositAmount)}</strong>
+          </p>
+          <p>
+            최종 결제금액: <strong>{formatCurrency(totalAmount)}</strong>
           </p>
         </div>
       </div>
@@ -57,22 +68,28 @@ export default function PaymentSummaryCard({
           {getStatusLabel(orderStatus)}
         </button>
 
-        <button
-          type="button"
-          className={styles.payBtn}
-          onClick={onClickPay}
-          disabled={
-            orderStatus === "PAID" ||
-            orderStatus === "IN_PROGRESS" ||
-            orderStatus === "COMPLETED"
-          }
-        >
-          {orderStatus === "PAID" ||
-          orderStatus === "IN_PROGRESS" ||
-          orderStatus === "COMPLETED"
-            ? "결제완료"
-            : "결제하기"}
-        </button>
+        {isCompleted ? (
+          <button type="button" className={styles.payBtn} disabled>
+            대여종료
+          </button>
+        ) : canConfirmReturn && isPaidState ? (
+          <button
+            type="button"
+            className={styles.payBtn}
+            onClick={onClickConfirmReturn}
+          >
+            반납 확인
+          </button>
+        ) : (
+          <button
+            type="button"
+            className={styles.payBtn}
+            onClick={onClickPay}
+            disabled={isPaidState || isCompleted}
+          >
+            {isPaidState ? "반납대기중" : "결제하기"}
+          </button>
+        )}
       </div>
     </div>
   );
