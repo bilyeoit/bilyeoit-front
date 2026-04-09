@@ -213,10 +213,6 @@ export default function ProductDetailPage({ itemId }) {
 
               <dl className={styles.infoList}>
                 <div className={styles.infoItem}>
-                  <dt>픽업</dt>
-                  <dd>{locationText}</dd>
-                </div>
-                <div className={styles.infoItem}>
                   <dt>보증금</dt>
                   <dd>{depositText}</dd>
                 </div>
@@ -276,22 +272,22 @@ export default function ProductDetailPage({ itemId }) {
                 </ul>
 
                 <div className={styles.metaChipRow}>
-                  <div className={styles.metaChip}>
-                    <span className={styles.metaChipLabel}>직거래지역</span>
-                    <span>{locationText}</span>
-                  </div>
 
                   <div className={styles.metaChip}>
                     <span className={styles.metaChipLabel}>카테고리</span>
                     <span>{categoryText}</span>
                   </div>
 
-                  {(product?.tags || []).map((tag) => (
-                    <div className={styles.metaChip} key={tag}>
-                      <span className={styles.metaChipLabel}>태그</span>
-                      <span>#{tag}</span>
+                  {(product?.tags || []).length > 0 && (
+                    <div className={styles.metaChip}>
+                    <span className={styles.metaChipLabel}>태그</span>
+                    <span>
+                        {(product.tags || []).map((tag, index) =>
+                        index === 0 ? `#${tag}` : ` #${tag}`
+                        )}
+                    </span>
                     </div>
-                  ))}
+                )}
                 </div>
               </div>
 
