@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, Suspense  } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   getChatRooms,
@@ -18,6 +18,7 @@ import PaymentSummaryCard from "@/components/chat/PaymentSummaryCard";
 import PaymentModal from "@/components/chat/PaymentModal";
 import RentalRequestModal from "@/components/RentalRequestModal";
 import styles from "./page.module.css";
+
 
 function formatPrice(value) {
   return `₩${Number(value || 0).toLocaleString("ko-KR")}`;
@@ -227,7 +228,7 @@ function getStoredUserId() {
   return payload?.sub ? Number(payload.sub) : null;
 }
 
-export default function ChatPage() {
+function ChatPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -956,5 +957,13 @@ export default function ChatPage() {
         onPaid={handlePaid}
       />
     </>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div>로딩 중...</div>}>
+      <ChatPageInner />
+    </Suspense>
   );
 }
