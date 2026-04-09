@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import styles from "./page.module.css";
 
@@ -262,7 +262,7 @@ function Pagination({ currentPage, totalPages, onChange }) {
   );
 }
 
-export default function ProductsPage() {
+function ProductsPageInner() {
   const searchParams = useSearchParams();
 
   const [categories, setCategories] = useState([]);
@@ -662,5 +662,13 @@ export default function ProductsPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={<div>로딩 중...</div>}>
+      <ProductsPageInner />
+    </Suspense>
   );
 }
