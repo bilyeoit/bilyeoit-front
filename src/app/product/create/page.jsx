@@ -207,6 +207,29 @@ export default function ProductCreatePage() {
   }, [form.firstCategoryId]);
 
   useEffect(() => {
+  if (!pendingAiSecondCategory) return;
+  if (!Array.isArray(subcategories) || subcategories.length === 0) return;
+
+  const matchedSecond = subcategories.find(
+    (item) => item.name.trim() === pendingAiSecondCategory.trim()
+  );
+
+  if (matchedSecond) {
+    setForm((prev) => ({
+      ...prev,
+      secondCategoryId: String(matchedSecond.categoryId),
+    }));
+    setMessage("AI 추천 카테고리가 적용됐어요.");
+    setError("");
+  } else {
+    setError("대분류는 적용했지만 일치하는 중분류를 찾지 못했어요.");
+    setMessage("");
+  }
+
+  setPendingAiSecondCategory("");
+}, [pendingAiSecondCategory, subcategories]);
+
+  useEffect(() => {
     return () => {
       previews.forEach((item) => URL.revokeObjectURL(item.url));
     };
@@ -335,18 +358,36 @@ export default function ProductCreatePage() {
   };
 
   const applyAiCategory = () => {
-    if (!selectedAiCategory.firstCategory) return;
+  const aiFirst = (selectedAiCategory.firstCategory || "").trim();
+  const aiSecond = (selectedAiCategory.secondCategory || "").trim();
 
-    const first = categories.find(
-      (item) => item.name === selectedAiCategory.firstCategory
-    );
+  if (!aiFirst) {
+    setError("AI 추천 대분류가 없어요.");
+    setMessage("");
+    return;
+  }
 
-    setForm((prev) => ({
-      ...prev,
-      firstCategoryId: first ? String(first.categoryId) : prev.firstCategoryId,
-      secondCategoryId: "",
-    }));
-  };
+  const first = categories.find(
+    (item) => item.name.trim() === aiFirst
+  );
+
+  if (!first) {
+    setError("AI 추천 대분류를 현재 카테고리 목록에서 찾지 못했어요.");
+    setMessage("");
+    return;
+  }
+
+  setPendingAiSecondCategory(aiSecond);
+
+  setForm((prev) => ({
+    ...prev,
+    firstCategoryId: String(first.categoryId),
+    secondCategoryId: "",
+  }));
+
+  setError("");
+  setMessage("카테고리 적용 중이에요.");
+};
 
   const applyAiDescription = () => {
     if (!ai.descriptionDraft) return;
@@ -434,8 +475,8 @@ export default function ProductCreatePage() {
         description: form.description.trim(),
         pricePerDay: roundToHundreds(Number(form.pricePerDay)),
         depositAmount: Number(form.depositAmount),
-        firstCategoryId: Number(form.firstCategoryId),
-        secondCategoryId: Number(form.secondCategoryId),
+        firstCategory: selectedFirstCategory?.name || "",
+        secondCategory: selectedSecondCategory?.name || "",
         tags: parseTags(form.tagsInput),
         imageUrl: ai.imageUrl,
         rentalDays: Number(form.rentalDays),
