@@ -8,7 +8,7 @@ import {
   getReviews,
   getReservationDashboard,
 } from "@/services/mypage";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./page.module.css";
 import Link from "next/link";
@@ -155,7 +155,7 @@ function getItemProgressStatus(item) {
   return item?.orderStatus || item?.status || item?.rentalStatus || "";
 }
 
-export default function MyPage() {
+function MypagePageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sortRef = useRef(null);
@@ -1132,5 +1132,13 @@ export default function MyPage() {
         onPaid={handlePaymentCompleted}
       />
     </>
+  );
+}
+
+export default function MypagePage() {
+  return (
+    <Suspense fallback={<div>로딩 중...</div>}>
+      <MypagePageInner />
+    </Suspense>
   );
 }
