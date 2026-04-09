@@ -442,6 +442,7 @@ export default function ChatPage() {
     const socket = createChatSocket({
       roomId: selectedRoomId,
       onMessage: async (payload) => {
+        console.log("소켓 메시지 수신:", payload); // 여기
         if (payload?.messageType === "PAYMENT") {
           try {
             const msgData = await getChatMessages(selectedRoomId);
@@ -454,6 +455,7 @@ export default function ChatPage() {
 
         setMessages((prev) => {
           const exists = prev.some((msg) => msg.messageId === payload.messageId);
+          console.log("중복 체크:", exists, "prev 길이:", prev.length); // 추가
           if (exists) return prev;
           return [...prev, payload];
         });
@@ -526,23 +528,11 @@ export default function ChatPage() {
     };
 
     try {
-      if (socketRef.current?.connected) {
-        sendChatMessageViaSocket(socketRef.current, payload);
-      } else {
-        await sendChatMessage(payload);
-      }
-
+      sendChatMessageViaSocket(socketRef.current, payload);
       setChatInput("");
-    } catch (socketError) {
-      console.error("소켓 전송 실패 → REST fallback", socketError);
-
-      try {
-        await sendChatMessage(payload);
-        setChatInput("");
-      } catch (restError) {
-        console.error(restError);
-        alert(restError.message || "메시지 전송에 실패했어요.");
-      }
+    } catch (error) {
+      console.error(error);
+      alert(error.message || "메시지 전송에 실패했어요.");
     }
   };
 
