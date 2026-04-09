@@ -112,6 +112,7 @@ export default function ProductCreatePage() {
     secondCategory: "",
   });
   const [selectedAiTags, setSelectedAiTags] = useState([]);
+  const [pendingAiSecondCategory, setPendingAiSecondCategory] = useState("");
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
