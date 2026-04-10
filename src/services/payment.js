@@ -31,6 +31,8 @@ export async function getPaymentSummary(orderId) {
     orderId,
     isPaid: statusData?.isPaid || false,
     balance: balanceData?.balance || statusData?.balance || 0,
+    depositAmount: statusData?.depositAmount || 0,
+    rentalAmount: statusData?.rentalAmount || 0,
     status: statusData?.isPaid ? "PAID" : "ACCEPTED",
   };
 }
