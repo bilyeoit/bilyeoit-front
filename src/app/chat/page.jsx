@@ -680,7 +680,7 @@ function ChatPageInner() {
               <div className={styles.senderWrap}>
                 <div className={styles.senderAvatar}></div>
                 <span className={styles.senderName}>
-                  {getRoomNickname(selectedRoom)}
+                  {selectedRoom?.targetNickname || "user"}
                 </span>
               </div>
             )}
